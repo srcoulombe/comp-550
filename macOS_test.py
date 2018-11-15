@@ -73,5 +73,33 @@ def checkSuperDictionary( superDictionary ):
     alt_atheism_dictionary = superDictionary["alt.atheism"]
     print('\n'.join(alt_atheism_dictionary["49960"]))
     return
+
+def checkHtmlIndustrySector():
+    root_dir = os.path.abspath(os.path.join(os.getcwd(), 'sector'))
+    openable_file_count = 0
+    file_count = 0
+    body_tag_count = 0
+    strangely_encoded_files = []
+    for dirname, dirnames, filenames in os.walk(root_dir):
+        # print path to all subdirectories first.
+        for subdirname in dirnames:
+            #print(os.path.join(dirname, subdirname))
+            pass
+
+        # print path to all filenames.
+        file_count += len(filenames)
+        for filename in filenames:
+            with open(os.path.join(dirname, filename),'r', errors='ignore') as infile:
+                contents = infile.readlines()
+                for line in contents:
+                    if '<body' in line.lower():
+                        body_tag_count += 1
+                        break
+                openable_file_count += 1
+                    
+    print(f"examined {openable_file_count}/{file_count} and counted {body_tag_count} <body> tags")
+    print('failed to open {} files:{}'.format(str(len(strangely_encoded_files)), '\n\n'.join(strangely_encoded_files)))
+    return
+
 def michin():
     return
