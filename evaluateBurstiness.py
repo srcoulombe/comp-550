@@ -2,9 +2,12 @@ import matplotlib
 
 import random
 import nltk
-from scipy.stats import multinomial
+from scipy.stats import multinomial, binom
 from nltk.corpus import words
 nltk.download( 'words' )
+
+# percentile calculation
+import numpy as np
 
 def bagOfWords( countVectorDict ):
     '''
@@ -41,6 +44,38 @@ def generateData( maxWordCount, minWordCount = 10**5, numCountsUpper=3 ):
     print( "Generated numWords: ", numWords, " length of Document: ", sum( countList ) )
     return dict( zip( wordList, countList ) )
 
+def commonAverageRareSplit( countVector, commonPercentile, averagePercentile):
+    '''
+    given dictionary key: word, values: counts of words
+    and commonPercentile (e.g. 70%), averagePercentil(e.g. 20%)
+
+    Split countVector into three dictionaries representing
+    1st group: total count is >=70 % of counts
+    2nd group: total count is next 20% of counts
+    3rd group: rest
+
+    return (dict, dict, dict) representing 1st, 2nd, 3rd group
+    '''
+    interpolation = 'nearest'
+    wordCounts = list( countVector.values() )
+    commonLb = np.percentile( wordCounts, commonPercentile, interpolation )
+    commonCounts = [ count for count in wordCounts if count >= commonLb ]
+
+    avgAndRareCounts = [ count for count in wordCounts if count < commonLb ]
+    avgLb = np.percentile( avgAndRareCounts, averagePercentile, interpolation )
+    
+    rareCounts = [ count for count in avgAndRareCounts if count < avgLb ]
+    avgCounts = [ count for count in avgAndRareCounts if count >= avgLb ]
+    
+def binomialProbability( numTrials, x_h, p_h ):
+    '''
+    Given numTrials experiment, calculate binomial probability
+    that heads appeared x_h, p_h being heads probability
+
+    returns a number between 0 and 1
+    '''
+    return binom.pmf( x_h, numTrials, p_h ) 
+
 if __name__ == '__main__':
     minNumWordsInDocument = 10 ** 2
     perWordCountUpperLimit = 7
@@ -56,7 +91,6 @@ if __name__ == '__main__':
     # randomly drawn a sample from multinomial distribution
     # means generating a document! (based on word vector count)
     samples =  multiDistribution.rvs( size = 1 )
-
 
     # ------------------
     # Printing document count vector
