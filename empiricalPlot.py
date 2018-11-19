@@ -27,6 +27,7 @@ def computeCountPerWord( wordCountD, wordList, totalNumDoc ):
     MIN = 0
     COUNT_MAX = 30
     '''
+    #TODO: modify such that zero counts are accounted for
     for word in wordList:
         print( word )
         docCounts = wordCountD[ word ]
@@ -36,12 +37,13 @@ def computeCountPerWord( wordCountD, wordList, totalNumDoc ):
         # interpolation
         numBins = 150
         scalingFactor = 1
-        plt.hist( list( docCounts.values() ) , numBins )
+        print( plt.hist( list( docCounts.values() ) , numBins )[0] )
         #logscale
         plt.yscale( 'log' )
         minY = 0
         plt.axis( [0, numBins, minY, len( list( docCounts.keys() ) )/scalingFactor ] )
         plt.show()
+        
     return 
 def computeAvgCountPerClass( wordList, g ):
     '''
@@ -114,4 +116,4 @@ if __name__ == '__main__':
     firstKey = list( d.keys())[0]
     numDocs = len( list( d.keys() ) )
     reformedD =  reformToDictionaryPerWord( d, wordList )
-    computeCountPerWord( reformedD, wordList[:5], numDocs)
+    computeCountPerWord( reformedD, wordList[496:503], numDocs)
