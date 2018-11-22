@@ -2,6 +2,23 @@ import pickle
 from collections import Counter
 import matplotlib.pyplot as plt
 from scipy import interpolate
+
+import numpy as np
+
+'''
+Helper Functions
+ I. building empirical histograms:
+   - interpolate (TODO): needs work and redefinition probably
+   - computeCountPerWord( wordCountD, wordList, totalNumDoc, numBins )
+   - computeAvgCountPerClass( wordList, g )
+     o g is whatever is outputted from computCountPerWord
+   - graphEmpiricalCounts( docCounts, displayString='none' )
+
+II. Classifying word in corpus to 3 classes:
+   - reformToDictionaryPerWord( perDocD, wordList )
+   - mostFrequentWords( listOfWordCount )
+      o listOfWordCount is a list of tuples: (word, word count in corpus)
+'''
 #unit testing would be great
 def interpolate( countD ):
     '''
@@ -15,48 +32,90 @@ def interpolate( countD ):
     print( countD )
     countTupleList = Counter( countD.values() ).most_common()
     print( countTupleList ) 
-    return 
-def computeCountPerWord( wordCountD, wordList, totalNumDoc ):
+    return
+
+def computeCountPerWord( wordCountD, wordList, totalNumDoc, numBins ):
     '''
-    given totalNumDoc, wordCountD which is {'word': {'docID': count}}
-    returns a function that takes in string word, and a word count
-    returning a number between [0,1]
+    given totalNumDoc
+    o wordCountD which is {'word': {'docID': count}}
+    o wordList: list of words in corpus
+    o totalNumDoc: total number of documents in corpus
+    o numBins: total number of word_count allowed, used to bin docCounts 
+               from [0,1), ... [numBins-2, numBins-1]
+
+    returns a dictionary that takes in key: string word
+            returning a list of numbers where
+
+            f[ word ][ word_count ] returns number of document count
+            that had word_count # of word
+
+            Dimension: roughly: # words * numBins
+            word_count is VALID only from 0.. to numBins - 2
     '''
-    '''
-    DOC_MAX = 5
-    MIN = 0
-    COUNT_MAX = 30
-    '''
-    #TODO: modify such that zero counts are accounted for
+    wordHist = {}
+    bins = range( numBins )
     for word in wordList:
-        print( word )
-        docCounts = wordCountD[ word ]
-        
+        docCounts = wordCountD[ word ] 
+        # key: docID, value: frequency of word in docID
+
+        # ---------------
+        # documents without any count of word, is not in docCounts
+        # compensating for that
         nonzeroWordCountList = list( docCounts.values() )
         numZeroCountDocs = totalNumDoc - len( nonzeroWordCountList )
         zeroInclusiveCountList = nonzeroWordCountList + [ 0 for i in range( numZeroCountDocs ) ] 
-        # key: docID, value: frequency of word in docID
-        #interpolate( docCounts )
-        # interpolation
-        numBins = 150
-        scalingFactor = 1
-        print( plt.hist( zeroInclusiveCountList , numBins )[0] )
-        #logscale
-        plt.yscale( 'log' )
-        minY = 0
-        plt.axis( [0, numBins, minY, len( list( docCounts.keys() ) )/scalingFactor ] )
-        plt.show()
         
-    return 
-def computeAvgCountPerClass( wordList, g ):
+        # TODO: work on interpolation
+        #interpolate( docCounts )
+        
+        # alpha = 0 to remove drawing 
+        ( docCounts, _, _ ) = plt.hist( zeroInclusiveCountList, bins, alpha = 0 )
+        wordHist[ word ] = docCounts 
+    return wordHist
+    
+
+def computeAvgCountPerClass( wordList, g  ):
     '''
     given a wordList
-    g is a function: takes in string word, and a word count
-    , returning a number between [0,1]
+    g is a dictionary: takes in string word,
+    value: list of word count, returning number repr # of docs that had i counts for word
 
-    returns a function over word counts, where
-    f( word count ) = sum( g( word count, word ) ) / number of words in wordList
+    returns a list
+    f[ i ] = sum_wordinList( g[word][ i ] ) / number of words in wordList
     '''
+    # all values have same length
+    numBins = len( list( g.values() )[ 0 ] )
+    numWords = len( wordList )
+    currentAvg = np.zeros( numBins )
+    for word in wordList:
+        currentAvg = np.add( currentAvg, np.array( g[ word ] ) ) 
+    return ( currentAvg / numWords ).tolist()
+
+def graphEmpiricalCounts( docCounts, displayString='none' ):
+    '''
+    graphs empirical count as found in docCounts
+
+    string word
+    wordHist is a list of counts associated with word, where ith count = # of docs which had word i times
+    '''
+    numBins = len( docCounts )
+    xAxis = range( numBins )
+    totalNumDoc = sum( docCounts )
+    scalingFactor = 1
+    #logscale
+    plt.yscale( 'log' )
+    minY = 0
+    plt.axis( [0, numBins, minY,  totalNumDoc/scalingFactor ] )
+    plt.scatter( xAxis, docCounts, label=displayString )
+    plt.legend( loc='upper right' )
+    plt.plot( xAxis, docCounts )
+    #plt.show()
+
+    return 
+
+
+# --------------------------------------------------------------------------------
+# Part II: classifying words into common, avg, and rare
 
 def reformToDictionaryPerWord( perDocD, wordList ):
     '''
@@ -90,12 +149,16 @@ def mostFrequentWords( listOfWordCount ):
     '''
     listOfWordCount.sort( key = lambda wordCountTuple: wordCountTuple[ 1 ], reverse=True )
     return [ listOfWordCount[:500], listOfWordCount[500:5500], listOfWordCount[5500:] ]
-    
+   
+#--------------------------------------------------------------------------------
+# Main function
 if __name__ == '__main__':
     corpusFile = '20_newsgroup_tokens_and_frequencies.pickle'
     with open( corpusFile, 'rb' ) as f:
         wordCountTupleD = pickle.load( f )
         wordCountTupleList = list( wordCountTupleD.items() )
+    # ---------------
+    # classifying words into three categories
     classOne, classTwo, classThree = mostFrequentWords( wordCountTupleList )
     # classWords is a list of lists of words
     # 0th entry = most frequent
@@ -105,13 +168,7 @@ if __name__ == '__main__':
     classWords.append( [ wordTuple[ 0 ] for wordTuple in classThree] )
     
     # ----------------
-    # unit tests for mostFrequentWords, reformToDictionaryPerWord
-    
-    #print( classWords[0] )
-    '''d = {0: {'the': 1, 'hello': 2}, 2: {'yellow': 3, 'the': 1}, 4: {'the': 3}}
-    wordList = ['the', 'hello', 'yellow']
-    numDocs = 3
-    '''
+    # empirical Frequency count
     wordList = classWords[0] + classWords[1] + classWords[2]
     perDocDFilename = 'dict_of_dicts_docID_token_freq_dicts.pickle'
     with open( perDocDFilename, 'rb' ) as f:
@@ -119,4 +176,19 @@ if __name__ == '__main__':
     firstKey = list( d.keys())[0]
     numDocs = len( list( d.keys() ) )
     reformedD =  reformToDictionaryPerWord( d, wordList )
-    computeCountPerWord( reformedD, wordList[496:503], numDocs)
+
+    # compute small amounts
+    sliceList = []
+    sliceLen = 50
+    idx = 0
+    sliceList.append( slice( idx, idx+sliceLen ))
+    idx= 500
+    sliceList.append( slice( idx, idx+sliceLen ))
+    idx= 5500
+    sliceList.append( slice( idx, idx+sliceLen ))
+    for s in sliceList:
+        wordHist = computeCountPerWord( reformedD, wordList[s], numDocs, numBins=50)
+        smallClassAvg = computeAvgCountPerClass( wordList[ s ], wordHist )  
+        graphEmpiricalCounts( smallClassAvg, 'mixed class' + str( s ) ) 
+    plt.show()
+    #graphEmpiricalCounts( 'guess', wordHist[ 'guess' ] )
