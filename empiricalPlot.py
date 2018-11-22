@@ -31,13 +31,16 @@ def computeCountPerWord( wordCountD, wordList, totalNumDoc ):
     for word in wordList:
         print( word )
         docCounts = wordCountD[ word ]
-        #print( docCounts )
+        
+        nonzeroWordCountList = list( docCounts.values() )
+        numZeroCountDocs = totalNumDoc - len( nonzeroWordCountList )
+        zeroInclusiveCountList = nonzeroWordCountList + [ 0 for i in range( numZeroCountDocs ) ] 
         # key: docID, value: frequency of word in docID
         #interpolate( docCounts )
         # interpolation
         numBins = 150
         scalingFactor = 1
-        print( plt.hist( list( docCounts.values() ) , numBins )[0] )
+        print( plt.hist( zeroInclusiveCountList , numBins )[0] )
         #logscale
         plt.yscale( 'log' )
         minY = 0
