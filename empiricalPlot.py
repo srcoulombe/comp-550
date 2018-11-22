@@ -179,7 +179,7 @@ if __name__ == '__main__':
 
     # compute small amounts
     sliceList = []
-    sliceLen = 50
+    sliceLen = 75
     idx = 0
     sliceList.append( slice( idx, idx+sliceLen ))
     idx= 500
