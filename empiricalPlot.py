@@ -179,16 +179,23 @@ if __name__ == '__main__':
 
     # compute small amounts
     sliceList = []
-    sliceLen = 75
+    sliceLen = len( classOne )
     idx = 0
     sliceList.append( slice( idx, idx+sliceLen ))
-    idx= 500
+    idx= sliceLen + idx
+    sliceLen = len( classTwo )
     sliceList.append( slice( idx, idx+sliceLen ))
-    idx= 5500
+    idx= sliceLen + idx
+    sliceLen = len( classThree )
     sliceList.append( slice( idx, idx+sliceLen ))
+    
+    classAvgList = [] # is a list of lists.. where classAvgList[0][i]: common 500 word avg for count of docs with word appearing i times
     for s in sliceList:
         wordHist = computeCountPerWord( reformedD, wordList[s], numDocs, numBins=50)
         smallClassAvg = computeAvgCountPerClass( wordList[ s ], wordHist )  
-        graphEmpiricalCounts( smallClassAvg, 'mixed class' + str( s ) ) 
-    plt.show()
+        classAvgList.append( smallClassAvg ) 
+    with open ( '20_newsgroup_empirical_count.pickle', 'wb' ) as handle:
+        pickle.dump( classAvgList, handle, protocol=pickle.HIGHEST_PROTOCOL )
+        #graphEmpiricalCounts( smallClassAvg, 'mixed class' + str( s ) ) 
+    #plt.show()
     #graphEmpiricalCounts( 'guess', wordHist[ 'guess' ] )
