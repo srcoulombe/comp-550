@@ -69,8 +69,9 @@ def computeCountPerWord( wordCountD, wordList, totalNumDoc, numBins ):
         #interpolate( docCounts )
         
         # alpha = 0 to remove drawing 
-        ( docCounts, _, _ ) = plt.hist( zeroInclusiveCountList, bins, alpha = 0 )
-        wordHist[ word ] = docCounts 
+        #( docCounts, _, _ ) = plt.hist( zeroInclusiveCountList, bins, alpha = 0 )
+        ( docCounts, _ ) = np.histogram( zeroInclusiveCountList, bins ) 
+        wordHist[ word ] = docCounts.tolist() 
     return wordHist
     
 
@@ -190,12 +191,20 @@ if __name__ == '__main__':
     sliceList.append( slice( idx, idx+sliceLen ))
     
     classAvgList = [] # is a list of lists.. where classAvgList[0][i]: common 500 word avg for count of docs with word appearing i times
+    '''
     for s in sliceList:
         wordHist = computeCountPerWord( reformedD, wordList[s], numDocs, numBins=50)
         smallClassAvg = computeAvgCountPerClass( wordList[ s ], wordHist )  
-        classAvgList.append( smallClassAvg ) 
+        classAvgList.append( smallClassAvg )
+        print( 'finished for ', str( s ) )
+    
     with open ( '20_newsgroup_empirical_count.pickle', 'wb' ) as handle:
         pickle.dump( classAvgList, handle, protocol=pickle.HIGHEST_PROTOCOL )
-        #graphEmpiricalCounts( smallClassAvg, 'mixed class' + str( s ) ) 
-    #plt.show()
+    '''
+    
+    with open ( '20_newsgroup_empirical_count.pickle', 'rb' ) as f:
+        classAvgList = pickle.load( f )
+    for classAvgIdx in range( len( classAvgList ) ):
+        graphEmpiricalCounts( classAvgList[ classAvgIdx ], 'class rank ' + str( classAvgIdx ) ) 
+    plt.show()
     #graphEmpiricalCounts( 'guess', wordHist[ 'guess' ] )
