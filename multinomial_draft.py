@@ -234,7 +234,7 @@ def main():
     
     training_set_document_IDs, testing_set_document_IDs = get_training_testing_split(class_to_documents_dictionary)
 
-# 2. making the sparse training matrix
+# 2. making the sparse training and testing matrices
 
     training_sparse_matrix = dok_matrix(
         ( 
@@ -244,13 +244,36 @@ def main():
         dtype=np.float32
     )
 
+    testing_sparse_matrix = dok_matrix(
+        ( 
+            sum( [ len(list_of_testing_documents_for_this_class) for list_of_testing_documents_for_this_class in testing_set_document_IDs.values() ] ) ,
+            len(lexicon)
+        ), 
+        dtype=np.float32
+    )
+
 # 3. populating the sparse training matrix
-    for class_integer, class_document_list in training_set_document_IDs.items(): # could include a column for the class integer
+    for class_integer, class_document_list in training_set_document_IDs.items(): # could include a column for the class integer label
         print(class_integer)
+        print(f"class: {list(training_set_document_IDs.keys())[0]}: {class_to_topic_mapping[0]}")
+
         for document_row, document in enumerate(class_document_list):
+            print(f"examining document {document}")
             for token, freq in docID_token_frequency_dictionaries[document].items():
                 training_sparse_matrix[document_row, lexicon.index(token)] = freq
-        
+                print(f"token: {token}, freq: {freq}")
+                input(training_sparse_matrix[document_row, lexicon.index(token)])
+            
+            print('\n'.join(list(map(str, list(docID_token_frequency_dictionaries['53513'].items())))))
+            print('\n\n\n')
+            if document_row == 0:
+                for col_index in range(len(lexicon)):
+                    if training_sparse_matrix[0,col_index] > 0:
+                        print(f"('{lexicon[col_index]}', {training_sparse_matrix[0,col_index]})")
+                break
+            break
+        break
+
     print("done")
 if __name__ == '__main__':
     main()
