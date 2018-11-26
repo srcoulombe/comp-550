@@ -1,14 +1,17 @@
 # Pickle legend
 
-Name: !20_newsgroup_dict_of_dicts_of_topic_topical_file_name_as_key_and_file_valid_lines_as_values.pickle
+=== 20 Newsgroups Data Set ===
+
+#### 1) twenty_newsgroup_dict_of_dicts_of_(topic_and_(topical_file_name)\_as_keys)\_and\_(file_valid_lines_as_values).pickle
+A dictionary of the form:
 
     dictionary = {
 
         'alt.atheism' : {
 
-                            '49960' : [ list of all the valid lines in file 49960 in the 'alt.atheism' subdirectory ],
+                            'alt.atheism+49960' : [ list of all the valid lines in file 49960 in the 'alt.atheism' subdirectory ],
 
-                            '51060' : [ list of all the valid lines in file 51060 in the 'alt.atheism' subdirectory ],
+                            'alt.atheism+51060' : [ list of all the valid lines in file 51060 in the 'alt.atheism' subdirectory ],
 
                             ...
 
@@ -16,9 +19,9 @@ Name: !20_newsgroup_dict_of_dicts_of_topic_topical_file_name_as_key_and_file_val
 
         'comp.graphics' : {
 
-                            '37261': [ list of all the valid lines in file 37261 in the 'comp.graphics' subdirectory ],
+                            'comp.graphics+37261': [ list of all the valid lines in file 37261 in the 'comp.graphics' subdirectory ],
 
-                            '37913': [ list of all the valid lines in file 37913 in the 'comp.graphics' subdirectory ],
+                            'comp.graphics+37913': [ list of all the valid lines in file 37913 in the 'comp.graphics' subdirectory ],
 
                             ...
 
@@ -27,34 +30,40 @@ Name: !20_newsgroup_dict_of_dicts_of_topic_topical_file_name_as_key_and_file_val
         ...
 
     }
-
-
-
-Name: !20_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle
     
-    dictionary of (all corpus token:corpus-wide frequency) (key:value) pairs.
 
-Name: !20_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle
+#### 2) twenty_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle
+A dictionary of the form:
 
     dict_of_dicts_docID_token_freq_dicts = {
-        docID#1 = {
-            token#1:frequency in docID#1,
-            token#2:frequency in docID#1,
-            ...
-        },
-        docID#2 = {
-            token#1:frequency in docID#2,
-            token#2:frequency in docID#2,
-            ...
-        },
-        ...
-
-    }
     
+            docID#1 : {
+            
+                token#1:frequency in docID#1,
+                
+                token#2:frequency in docID#1,
+                
+                ...
+            },
+            
+            docID#2 : {
+            
+                token#1:frequency in docID#2,
+                
+                token#2:frequency in docID#2,
+                
+                ...
+            },
+            ...
 
-Name: !20_newsgroups_topic_to_list_of_topical_files.pickle
-    
-    dictionary of (topic_name:list of files with this topic) (key:value) pairs,
+        }
+        
+#### 3) 20_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle
+A dictionary of (token:corpus-wide frequency) (key:value) pairs.
+
+==============================
+
+=== Industry Sector Data Set ===
 
 Name: !industry_sector_subtopic_key_to_subtopic_name_dictionary.pickle
 
@@ -84,3 +93,5 @@ Name: !sector_dict_of_dicts_filename_token_freq_dicts.pickle
 
         }
     '''
+
+================================

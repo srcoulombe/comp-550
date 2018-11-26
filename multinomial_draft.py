@@ -3,15 +3,19 @@ import pandas as pd
 import numpy as np 
 from random import sample
 from scipy.sparse import dok_matrix # sparse matrix data structure
+from sklearn.naive_bayes import MultinomialNB
+from sklearn import metrics
+from collections import Counter
 
-def load_20newsgroups_lexicon(pickle_file_path='!20_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle'):
+
+def load_20newsgroups_lexicon(pickle_file_path='twenty_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle'):
     '''
     Loads a pickled dictionary of corpus-wide (token:corpus-wide frequency) (key:value) pairs.
     Returns the list of lexicon tokens (w/o their frequency) sorted from most->least common
 
     Parameters:
         pickle_file_path: path to the pickled dictionary of corpus-wide (token:corpus-wide frequency)
-            !20_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle 
+            twenty_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle 
     
     Returns:
         lexicon: the list of lexicon tokens sorted from most->least frequent in the corpus.
@@ -70,7 +74,7 @@ def load_industry_sector_lexicon(pickle_file_path='industry_sector_tokens_and_fr
     lexicon = [ token for (token,frequency) in corpus_wide_token_frequency_tuples_list ]
     return lexicon
 
-def classify_topics(pickle_file_path='!20_newsgroups_topic_to_list_of_topical_files.pickle'):
+def classify_topics(pickle_file_path='twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'):
     '''
     Loads a pickled dictionary of (topic_name:list of files with this topic) (key:value) pairs,
     and returns two dictionaries:
@@ -85,7 +89,7 @@ def classify_topics(pickle_file_path='!20_newsgroups_topic_to_list_of_topical_fi
 
     Parameters:
         pickle_file_path: path to the pickled dictionary of (topic_name:list of files with this topic) (key:value) pairs.
-        '!20_newsgroups_topic_to_list_of_topical_files.pickle'
+        'twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'
         or
         '!industry_sector_topicID_to_list_of_topical_files_dictionary.pickle'
 
@@ -98,14 +102,14 @@ def classify_topics(pickle_file_path='!20_newsgroups_topic_to_list_of_topical_fi
     
     class_to_topic_mapping = {} # a (int [0-19]) : (string topic) dictionary
     class_to_documents_dictionary = {} # a (int [0-19]) : list of document IDs dictionary
-    for class_int, (topic, list_of_files_of_this_topic) in enumerate(list(topic_to_topical_document_IDs_dict.items())):
-        #input(f"{topic}, {list_of_files_of_this_topic}")
+    for class_int, (topic, filename_and_valid_lines_dictionary) in enumerate(list(topic_to_topical_document_IDs_dict.items())):
+        #input(f"{topic}, {filename_and_valid_lines_dictionary}")
         class_to_topic_mapping[class_int] = topic
-        class_to_documents_dictionary[class_int] = list_of_files_of_this_topic
+        class_to_documents_dictionary[class_int] = list(filename_and_valid_lines_dictionary.keys())
 
     return class_to_topic_mapping, class_to_documents_dictionary
 
-def load_all_files_token_frequency_dictionaries(pickle_file_path='!20_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle'):
+def load_all_files_token_frequency_dictionaries(pickle_file_path='twenty_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle'):
     '''
     Loads and returns a pickled dictionary of dictionaries of the form
 
@@ -127,7 +131,7 @@ def load_all_files_token_frequency_dictionaries(pickle_file_path='!20_newsgroups
 
     Parameters:
         pickle_file_path: path to the pickled dictionary of dictionaries.
-        '!20_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle'
+        'twenty_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle'
         or
         '!sector_dict_of_dicts_filename_token_freq_dicts.pickle'
 
@@ -197,7 +201,7 @@ def get_training_testing_split(topic_class_to_list_of_topical_documents_dictiona
     
     return training_set_document_IDs, testing_set_document_IDs
 
-def main():
+def setup():
 
 # obtaining the lexicon (tokens) and sorting it by corpus-wide frequency    
     lexicon = load_20newsgroups_lexicon()
@@ -233,12 +237,13 @@ def main():
 # this could be a one-liner using sklearn.model_selection.train_test_split, but we just need to ensure an equal sampling across each class...
     
     training_set_document_IDs, testing_set_document_IDs = get_training_testing_split(class_to_documents_dictionary)
-
+    number_of_training_documents = sum( [ len(list_of_training_documents_for_this_class) for list_of_training_documents_for_this_class in training_set_document_IDs.values() ] )
+    number_of_testing_documents = sum( [ len(list_of_testing_documents_for_this_class) for list_of_testing_documents_for_this_class in testing_set_document_IDs.values() ] ) 
 # 2. making the sparse training and testing matrices
 
     training_sparse_matrix = dok_matrix(
         ( 
-            sum( [ len(list_of_training_documents_for_this_class) for list_of_training_documents_for_this_class in training_set_document_IDs.values() ] ) ,
+            number_of_training_documents,
             len(lexicon)
         ), 
         dtype=np.float32
@@ -246,34 +251,114 @@ def main():
 
     testing_sparse_matrix = dok_matrix(
         ( 
-            sum( [ len(list_of_testing_documents_for_this_class) for list_of_testing_documents_for_this_class in testing_set_document_IDs.values() ] ) ,
+            number_of_testing_documents,
             len(lexicon)
         ), 
         dtype=np.float32
     )
 
 # 3. populating the sparse training matrix
+
+    training_labels_vector =[0]*number_of_training_documents
+    testing_labels_vector = [0]*number_of_testing_documents
+    print(f"{number_of_training_documents} training documents, size of label array = {len(training_labels_vector)}")
+    print(f"{number_of_testing_documents} testing documents, size of label array = {len(testing_labels_vector)}")
+    
     for class_integer, class_document_list in training_set_document_IDs.items(): # could include a column for the class integer label
-        print(class_integer)
-        print(f"class: {list(training_set_document_IDs.keys())[0]}: {class_to_topic_mapping[0]}")
+        
+        print(f"Class: {class_integer}: {class_to_topic_mapping[class_integer]}")
 
         for document_row, document in enumerate(class_document_list):
-            print(f"examining document {document}")
+            #print(f"examining document {document}")
+            training_labels_vector[document_row] = class_integer
+            # uncomment if you just want to get the labels 
+            break 
             for token, freq in docID_token_frequency_dictionaries[document].items():
                 training_sparse_matrix[document_row, lexicon.index(token)] = freq
-                print(f"token: {token}, freq: {freq}")
-                input(training_sparse_matrix[document_row, lexicon.index(token)])
+                
+                # debugging code, can be ignored
+                
+                #print(f"token: {token}, freq: {freq}")
+                #input(training_sparse_matrix[document_row, lexicon.index(token)])
             
-            print('\n'.join(list(map(str, list(docID_token_frequency_dictionaries['53513'].items())))))
-            print('\n\n\n')
-            if document_row == 0:
-                for col_index in range(len(lexicon)):
-                    if training_sparse_matrix[0,col_index] > 0:
-                        print(f"('{lexicon[col_index]}', {training_sparse_matrix[0,col_index]})")
-                break
-            break
-        break
+            #print('\n'.join(list(map(str, list(docID_token_frequency_dictionaries['53513'].items())))))
+            #print('\n\n\n')
+            #if document_row == 0:
+                #for col_index in range(len(lexicon)):
+                    #if training_sparse_matrix[0,col_index] > 0:
+                        #print(f"('{lexicon[col_index]}', {training_sparse_matrix[0,col_index]})")
+                #break
+            #break
+        #break
+        
+    with open('twenty_newsgroups_training_matrix.pickle','wb') as handle:
+        pickle.dump(training_sparse_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    with open('twenty_newsgroups_training_matrix_labels_vector.pickle','wb') as handle:
+        pickle.dump(training_labels_vector, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print("done populating the training matrix")
 
-    print("done")
+# 4. populating the sparse testing matrix
+    
+    for class_integer, class_document_list in testing_set_document_IDs.items():
+        print(f"Class: {class_integer}: {class_to_topic_mapping[class_integer]}")
+
+        for document_row, document in enumerate(class_document_list):
+            testing_labels_vector[document_row] = class_integer
+            # uncomment if you just want to get the labels 
+            break
+            for token, freq in docID_token_frequency_dictionaries[document].items():
+                testing_sparse_matrix[document_row, lexicon.index(token)] = freq
+        
+    with open('twenty_newsgroups_testing_matrix.pickle','wb') as handle:
+        pickle.dump(testing_sparse_matrix, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    with open('twenty_newsgroups_testing_matrix_labels_vector.pickle','wb') as handle:
+        pickle.dump(testing_labels_vector, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print("done populating the test matrix")
+    
+def run_multinomialNB(training_matrix_pickle, training_labels_pickle, testing_matrix_pickle, testing_labels_pickle):
+    
+    # recover pickles
+    with open(training_matrix_pickle,'rb') as handle:
+        training_matrix = pickle.load(handle)
+    
+    with open(training_labels_pickle, 'rb') as handle:
+        training_labels = pickle.load(handle)
+    
+    with open(testing_matrix_pickle,'rb') as handle:
+        testing_matrix = pickle.load(handle)
+
+    with open(testing_labels_pickle, 'rb') as handle:
+        testing_labels = pickle.load(handle)
+            
+    print(f"length of training matrix = {training_matrix.shape[0]}, length of training labels row matrix = {len(training_labels)}")
+
+    testlabels = Counter(testing_labels)
+    print(testlabels)
+    trainlabels = Counter(training_labels)
+    print(trainlabels)
+    # don't forget to permute the training matrix and labels together!
+
+    try:
+        assert training_matrix.shape[0] == len(training_labels)
+    except AssertionError:
+        print(f"length of training matrix = {len(training_matrix)}, length of training labels row matrix = {len(training_labels)}")
+
+    mnnb_classifier = MultinomialNB(alpha=0.01,fit_prior=False) # to match the paper's multinomial classifier's parameters
+    mnnb_classifier.fit(training_matrix, training_labels)
+    print("done training the classifier")
+
+    predictions = mnnb_classifier.predict(testing_matrix)
+    input(predictions.shape)
+
+    
+    #confusion_matrix = metrics.confusion_matrix(testing_labels, predictions, labels=list(testing_labels))
+    
+    #print(confusion_matrix)
+
+
 if __name__ == '__main__':
-    main()
+    setup()
+    run_multinomialNB('twenty_newsgroups_training_matrix.pickle','twenty_newsgroups_training_matrix_labels_vector.pickle','twenty_newsgroups_testing_matrix.pickle','twenty_newsgroups_testing_matrix_labels_vector.pickle')
+    
+    
+    
