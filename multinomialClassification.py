@@ -38,7 +38,7 @@ def trainParameterGivenTopic( inputCorpus, wordList, smoothingParam = 0 ):
     Given a dictionary of word-frequency count for a topic corpus, and wordList
     return a list of ML parameters
 
-    o inputCorpus: dictionary whose
+    o inputCorpus: training dictionary whose
      - key: string word
      - value: frequency count of word in topic corpus
     o wordList: list of words
@@ -59,6 +59,10 @@ def trainParameterGivenTopic( inputCorpus, wordList, smoothingParam = 0 ):
         mlEstimateList.append( numerator / denominator ) 
     return mlEstimateList
 
+def reformMatrixToWordFrequencyD( sparseMat ):
+    '''
+    Given a Dok Matrix
+    '''
 if __name__ == '__main__':
     SMOOTH = 0.01
     corpusWordFrequencyName = '20_newsgroup_tokens_and_frequencies.pickle'
@@ -84,6 +88,8 @@ if __name__ == '__main__':
     # Train ML parameters from corpus
     topicParams = []
     topicList = list( topicWordFrequency.keys() )
+
+    # TODO: split training-test-validation test data.. do it by # document proportions per topic
     for topic in topicList: 
         topicParams.append( trainParameterGivenTopic( dict( topicWordFrequency[ topic ] ), lexicon, SMOOTH ) )
 
