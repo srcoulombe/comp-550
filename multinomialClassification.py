@@ -15,7 +15,7 @@ from splitData import getFilename, partitionDataPerTopic
 from sklearn import metrics
 import time
 import matplotlib.pyplot as plt
-
+from statistics import mean, stdev
 def fromOneDimMatrixToArray( oneDimMatrix ):
     '''
     converts [1xn] matrix into a numpy array of shape( n, )
@@ -89,6 +89,49 @@ def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikeli
         maxTopic = max( scoreD.items(), key=operator.itemgetter(1) )[0]
         predictedTopicL.append( maxTopic )
     return predictedTopicL
+
+def plotFigure( confusionMat, topicList ):
+    '''
+    Plots a heatmap confusion matrxi
+
+    returns
+    '''
+    fig = plt.figure()
+    ax = fig.subplots( nrows=1, ncols=1 )
+
+    # heatmap
+    heatmap = ax.matshow( confusionMat, cmap="Reds", aspect="equal" )
+    ax.set_xticks( np.arange( len( confusionMat ) ) )
+    ax.set_yticks( np.arange( len( confusionMat ) ) )
+    ax.set_xticklabels( topicList )
+    ax.set_yticklabels( topicList )
+    # setting up rotation
+    plt.setp( ax.get_xticklabels(), rotation=45, ha='left', va='top', \
+            rotation_mode='anchor' )
+    plt.ylabel( 'True topic' )
+    plt.xlabel( 'Predicted topic' )
+    plt.colorbar( heatmap )
+    plt.show()
+def reportPrecision( confusionMatL ):
+    '''
+    Returns precision mean and stdev from a list of ConfusionMatrices
+    '''
+    precisionL = []
+    for idx, confusionMat in enumerate( confusionMatL ):
+        tPCount = 0
+        fPCount = 0
+ 
+        for topicIdx, topicRow in enumerate( confusionMat ):
+            tP = confusionMat[ topicIdx, topicIdx ]
+            fP = sum( confusionMat[:, topicIdx] ) - tP
+            tPCount += tP
+            fPCount += fP
+        totalCount = tPCount + fPCount
+        precision = tPCount / float( totalCount )
+        precisionL.append( precision )
+    print( 'Precision: ', mean( precisionL ), ' +/- ', stdev( precisionL ) )
+    return precisionL
+
 # ---------------------
 # Deprecated Functions
 # NOT USED
@@ -175,7 +218,7 @@ if __name__ == '__main__':
     # For Confusion Matrix Writing
     confusionDataDir = 'confusionMatrix'
     confusionMatrixF = getFilename( splitNumber, isTraining=False, isLabel=False, dataDirName=confusionDataDir, alternateClusterName='' )
- 
+     
     with open( trainingMatF, 'rb' ) as f:
         trainingMat = csr_matrix( pickle.load( f ) )
         # fast matrix, whose get_row returns ONLY non-zero values
@@ -240,19 +283,15 @@ if __name__ == '__main__':
         confusionMatrix = pickle.load( f )
     
     # code from Samy
-    fig = plt.figure()
-    ax = fig.subplots( nrows=1, ncols=1 )
-    heatmap = ax.matshow( confusionMatrix, cmap="Reds", aspect="equal" )
-    ax.set_xticks( np.arange( len( confusionMatrix ) ) )
-    ax.set_yticks( np.arange( len( confusionMatrix ) ) )
-    ax.set_xticklabels( topicList )
-    ax.set_yticklabels( topicList )
-    plt.setp( ax.get_xticklabels(), rotation=45, ha='left', va='top', \
-            rotation_mode='anchor' )
-    plt.ylabel( 'True topic' )
-    plt.xlabel( 'Predicted topic' )
-    plt.colobar( heatmap )
-    plt.show()
+    #plotFigure( confusionMatrix, topicList )
+    confusionMatrixFL = []
+    confusionMatrixL = []
+    for i in range( 3 ):
+        confusionMatrixFL.append( getFilename( i, isTraining=False, isLabel=False, dataDirName=confusionDataDir, alternateClusterName='' ) )
+    for confusionMatrixFile in confusionMatrixFL:
+        with open( confusionMatrixFile, 'rb' ) as f:
+            confusionMatrixL.append( pickle.load( f ) )
+    reportPrecision( confusionMatrixL )
     '''
     numSamples = 10
     for i in range( numSamples ):
