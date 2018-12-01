@@ -2,6 +2,7 @@ import pickle
 from scipy.sparse import csr_matrix # for fetching rows
 import numpy as np
 from collections import Counter
+import os
 
 def getFilename( splitNumber, isTraining, isLabel,
                  dataDirName = 'training_testing_and_results_pickles',
@@ -16,6 +17,8 @@ def getFilename( splitNumber, isTraining, isLabel,
     - isTraining: True if file for training
     - isLabel: True if file for getting label associated to matrix
 
+    SIDE effect: if directory doesn't exist, directory will be created
+
     returns a string with prefixes attached
     '''
     trainingTestingStr = 'training' if isTraining else 'testing'
@@ -23,6 +26,7 @@ def getFilename( splitNumber, isTraining, isLabel,
     fName = alternateClusterName + '_' + trainingTestingStr + '_matrix' + \
             matrixLabelStr + 'cv#' + str( splitNumber ) + '.' + extensionName
     prefix = './'+ dataDirName + '/' + testCluster + '/cv' + str( splitNumber ) + '/'
+    os.makedirs( prefix, exist_ok=True )
     return prefix + fName
 
 def partitionDataPerTopic( dataTopics, dataM ):
@@ -61,6 +65,7 @@ if __name__ == '__main__':
     testingMatF = getFilename( splitNumber, isTraining=False, isLabel=False ) 
     testingLabelF = getFilename( splitNumber, isTraining=False, isLabel=True ) 
 
+    #garboF = getFilename( splitNumber, False, False, dataDirName='foo', alternateClusterName='')
     with open( trainingMatF, 'rb' ) as f:
         trainingMat = csr_matrix( pickle.load( f ) )
         # fast matrix, whose get_row returns ONLY non-zero values
