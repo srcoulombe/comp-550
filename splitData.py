@@ -25,28 +25,28 @@ def getFilename( splitNumber, isTraining, isLabel,
     prefix = './'+ dataDirName + '/' + testCluster + '/cv' + str( splitNumber ) + '/'
     return prefix + fName
 
-def partitionTrainingDataPerTopic( trainingTopics, trainingDataM ):
+def partitionDataPerTopic( dataTopics, dataM ):
     '''
-    Given a list of topics (asscoiated with each row in trainingDataM) and trainingDataM,
+    Given a list of topics (asscoiated with each row in dataM) and dataM,
     return a list of unique topics, and a dictionary whose
     key: label, value: submatrix whose rows have value label
-    (i.e. trainingLabel[i] = label -> trainingDataM.getrow(i) is a row in d[label])
+    (i.e. dataTopics[i] = label -> dataM.getrow(i) is a row in d[label])
 
-    - trainingLabel: a list of topics associated with each row
+    - dataTopics: a list of topics associated with each row
                     o has a special structure: [ 0,0,0,.... ,0,1,1,...,1,2...,2.. and so on]
-    - trainingDataM: a matrix with efficient slicing and row reading
+    - dataM: a matrix with efficient slicing and row reading
     
     returns a list of unique topics, and a dictionary described above
     '''
     topicToMatrixD = {}
-    topicCounts = Counter( trainingTopics )
+    topicCounts = Counter( dataTopics )
     startIdx = 0
     # UPDATE variables: startIdx, endIdx
     for topic in topicCounts.keys():
         endIdx = startIdx + topicCounts[ topic ]
-        topicToMatrixD[ topic ] = trainingDataM[ startIdx:endIdx ]
+        topicToMatrixD[ topic ] = dataM[ startIdx:endIdx ]
         startIdx = endIdx
-    return (topicCounts.keys(), topicToMatrixD)
+    return (list( topicCounts.keys() ), topicToMatrixD)
 
 if __name__ == '__main__':
     splitNumber = 0
@@ -62,13 +62,23 @@ if __name__ == '__main__':
         trainingLabel = pickle.load( f )
         # trainingLabel is a list
         # ordered such that 0 appears x_0, 1 appears x_1, and so forth
-    
+    with open( testingMatF, 'rb' ) as f:
+        testingMat = csr_matrix( pickle.load( f ) )
+    with open( testingLabelF, 'rb' ) as f:
+        testingLabel = pickle.load( f )
     #partitioning training data
-    (topicList, partitionedTrainingD) = partitionTrainingDataPerTopic( trainingLabel, trainingMat )
-    topicWordDictionary = {} 
+    (topicList, partitionedTrainingD) = partitionDataPerTopic( trainingLabel, trainingMat )
+    (_, partitionedTestingD) = partitionDataPerTopic( testingLabel, testingMat )
+
+    trainingWordFrequencyD = {}
+    # key: topic, value: array of frequency
     for topic in topicList:
         # sum frequency row-wise
-        topicWordDictionary[ topic ] = partitionedTrainingD[ topic ].sum( axis = 0 )
+        topicFrequencyMat = partitionedTrainingD[ topic ].sum( axis = 0 )
+        trainingWordFrequencyD[ topic ] = np.array( topicFrequencyMat )[0]
+    #print( topicWordDictionary[ topic ])
+    #for word, freq in topicWordDictionary[ firstTopic ].items():
+    #    print( word, '; frequency of word is: ', freq )
     #print( trainingMat[0:23].sum( axis = 0 ) ) 
     #for key, value in trainingMat.items():
     #    print( key, value )
