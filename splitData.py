@@ -49,6 +49,12 @@ def partitionDataPerTopic( dataTopics, dataM ):
     return (list( topicCounts.keys() ), topicToMatrixD)
 
 if __name__ == '__main__':
+    '''
+    Step 1. Read and load training/test data split
+    Step 2. partition training/test data per topic
+    '''
+    # --------------------------------
+    # Step 1. Read and load training/test data split
     splitNumber = 0
     trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False ) 
     trainingLabelF = getFilename( splitNumber, isTraining=True, isLabel=True ) 
@@ -66,19 +72,16 @@ if __name__ == '__main__':
         testingMat = csr_matrix( pickle.load( f ) )
     with open( testingLabelF, 'rb' ) as f:
         testingLabel = pickle.load( f )
-    #partitioning training data
+    # --------------------------------
+    # Step 2. partition training/test data per topic 
+ 
     (topicList, partitionedTrainingD) = partitionDataPerTopic( trainingLabel, trainingMat )
     (_, partitionedTestingD) = partitionDataPerTopic( testingLabel, testingMat )
+    # key: topic, val: matrix whose col dimensions = |lexicon|, row dim = # docs belonging to topic
 
     trainingWordFrequencyD = {}
-    # key: topic, value: array of frequency
+    # key: topic, value: array of topic wide frequency, len( array ) = | lexicon |
     for topic in topicList:
         # sum frequency row-wise
         topicFrequencyMat = partitionedTrainingD[ topic ].sum( axis = 0 )
         trainingWordFrequencyD[ topic ] = np.array( topicFrequencyMat )[0]
-    #print( topicWordDictionary[ topic ])
-    #for word, freq in topicWordDictionary[ firstTopic ].items():
-    #    print( word, '; frequency of word is: ', freq )
-    #print( trainingMat[0:23].sum( axis = 0 ) ) 
-    #for key, value in trainingMat.items():
-    #    print( key, value )
