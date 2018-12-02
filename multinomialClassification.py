@@ -90,7 +90,7 @@ def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikeli
         predictedTopicL.append( maxTopic )
     return predictedTopicL
 
-def plotFigure( confusionMat, topicList ):
+def plotFigure( confusionMat, topicList, topicIdxToStrFName ):
     '''
     Plots a heatmap confusion matrxi
 
@@ -99,12 +99,14 @@ def plotFigure( confusionMat, topicList ):
     fig = plt.figure()
     ax = fig.subplots( nrows=1, ncols=1 )
 
+    topicIdxToTopicD = mapFromTopicIdxToTopic( topicIdxToStrFName )
+    topics = [ topicIdxToTopicD[i] for i in topicList ]
     # heatmap
     heatmap = ax.matshow( confusionMat, cmap="Reds", aspect="equal" )
     ax.set_xticks( np.arange( len( confusionMat ) ) )
     ax.set_yticks( np.arange( len( confusionMat ) ) )
-    ax.set_xticklabels( topicList )
-    ax.set_yticklabels( topicList )
+    ax.set_xticklabels( topics )
+    ax.set_yticklabels( topics )
     # setting up rotation
     plt.setp( ax.get_xticklabels(), rotation=45, ha='left', va='top', \
             rotation_mode='anchor' )
@@ -112,6 +114,7 @@ def plotFigure( confusionMat, topicList ):
     plt.xlabel( 'Predicted topic' )
     plt.colorbar( heatmap )
     plt.show()
+
 def reportPrecision( confusionMatL ):
     '''
     Returns precision mean and stdev from a list of ConfusionMatrices
@@ -132,65 +135,24 @@ def reportPrecision( confusionMatL ):
     print( 'Precision: ', mean( precisionL ), ' +/- ', stdev( precisionL ) )
     return precisionL
 
-# ---------------------
-# Deprecated Functions
-# NOT USED
-def reformFromListOfTuplesToDictionary( listOfTuples ):
+def mapFromTopicIdxToTopic( topicFName ):
     '''
-    reform [(a1,b1), ... ] into d[a1] = b1
+    topicFName is a file that contains
+    a dictionary whose
+    key: topic string
+    val: ... DONT care
 
-    returns a dictionary
+    returns a dictionary where 
+    key: topicIDx
+    val: topic string
     '''
-    return dict( listOfTuples )
+    idxToStrD = {}
+    with open( topicFName, 'rb' ) as f:
+        topicKeyD = pickle.load( f )
+    for topicIdx, (topic, rest) in enumerate( list( topicKeyD.items() ) ):
+        idxToStrD[ topicIdx ] = topic
+    return idxToStrD
 
-def d_computeLogLikelihood( testSentence, parameters, wordList ):
-    '''
-    Given testSentence, and parameters for a multinomial distribution
-    calculate log-likelihood of seeing test sentence
-    assumes Naive Bayes assumption
-    
-    - testSentence: word-frequency count dictionary
-    - parameters: a list of size |lexicon|, corresponding to values of multinomial parameter
-
-    returns a number
-    '''
-    wordFrequencyList = []
-    for word in wordList:
-        countInTestSentence = 0
-        if word in testSentence.keys():
-            countInTestSentence = testSentence[ word ]
-        # ow zero count
-        wordFrequencyList.append( countInTestSentence )
-    logParam = np.log( parameters )
-    return np.dot( np.array( wordFrequencyList ), logParam )
-
-
-# NOT USED, but INSPIRED FROM
-def d_trainParameterGivenTopic( inputCorpus, wordList, smoothingParam = 0 ):
-    '''
-    Given a dictionary of word-frequency count for a topic corpus, and wordList
-    return a list of ML parameters
-
-    o inputCorpus: training dictionary whose
-     - key: string word
-     - value: frequency count of word in topic corpus
-    o wordList: list of words
-
-    returns a list of parameters:
-     - size = |wordList|
-     - values are ML estimates of prob occurence for each word
-    '''
-    totalNumWordsInCorpus =  float( sum( list( inputCorpus.values() ) ) )
-    lexiconSize = len( wordList )
-    denominator = totalNumWordsInCorpus + lexiconSize * smoothingParam
-    mlEstimateList = []
-    topicCount = 0
-    for word in wordList:
-        if( word in inputCorpus.keys() ): topicCount = inputCorpus[ word ]
-        else: topicCount = 0
-        numerator = smoothingParam + topicCount  
-        mlEstimateList.append( numerator / denominator ) 
-    return mlEstimateList
 # -------------------------
 # Main Function
 
@@ -283,7 +245,8 @@ if __name__ == '__main__':
         confusionMatrix = pickle.load( f )
     
     # code from Samy
-    #plotFigure( confusionMatrix, topicList )
+    topicDFName = './data_pickles/twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'
+    plotFigure( confusionMatrix, topicList, topicDFName )
     confusionMatrixFL = []
     confusionMatrixL = []
     for i in range( 3 ):
@@ -292,57 +255,4 @@ if __name__ == '__main__':
         with open( confusionMatrixFile, 'rb' ) as f:
             confusionMatrixL.append( pickle.load( f ) )
     reportPrecision( confusionMatrixL )
-    '''
-    numSamples = 10
-    for i in range( numSamples ):
-        actualTopic = 3
-        likelihoodD = {}
-        currentSentence = partitionedTestingD[ actualTopic ].getrow( i )
-        currentSentence = currentSentence.sum( axis=0 )
-        sentWordFreqArray = fromOneDimMatrixToArray( currentSentence) 
-        for topic in topicList:
-            likelihoodD[ topic ] =  computeLogLikelihood( sentWordFreqArray, mlEstimatesD[ topic ] )
-        maximizingTopic = max( likelihoodD.items(), key=operator.itemgetter( 1 ) ) [ 0 ]
-    '''
-'''
-if __name__ == '__main__':
-    SMOOTH = 0.01
-    corpusWordFrequencyName = '20_newsgroup_tokens_and_frequencies.pickle'
-    topicWordFrequencyName = '20_newsgroup_tokens_and_frequencies_by_topics_dictionary.pickle'
-    docWordFrequencyName = 'twenty_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle'
-
-    topicToDocIdName = 'twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'
-
-    with open( topicToDocIdName, 'rb' ) as f:
-        topicToDocId = pickle.load( f )
-    with open( corpusWordFrequencyName, 'rb' ) as f:
-        corpusWordFrequency = pickle.load( f )
-    with open( topicWordFrequencyName, 'rb' ) as f:
-        topicWordFrequency = pickle.load( f )
-    with open( docWordFrequencyName, 'rb' ) as f:
-        docWordFrequency = pickle.load( f )
-    firstDoc = list( docWordFrequency.keys() )[0]
-    print( firstDoc ) # this is a string like topic+fileID
-    lexicon = list( corpusWordFrequency.keys() )
-
-    contentOfFirstDoc = topicToDocId[ 'alt.atheism' ][firstDoc]
-    print( contentOfFirstDoc )
-    # Train ML parameters from corpus
-    topicParams = []
-    topicList = list( topicWordFrequency.keys() )
-
-    # TODO: split training-test-validation test data.. do it by # document proportions per topic
-    for topic in topicList: 
-        topicParams.append( trainParameterGivenTopic( dict( topicWordFrequency[ topic ] ), lexicon, SMOOTH ) )
-
-    # compute likelihood for each topic
-    likelihoodD = {}
-    for topicIdx in range( len( topicList ) ):
-        topic = topicList[ topicIdx ]
-        likelihoodD[ topic ] = computeLogLikelihood( docWordFrequency[ firstDoc ], topicParams[ topicIdx ], lexicon )
-    maximizingTopic = max( likelihoodD.items(), key=operator.itemgetter( 1 ) ) [ 0 ] 
-    print( "Trained model predicts that for sentence above  topic ", maximizingTopic, ' is the topic for this doc' )
-    print( likelihoodD )
-'''
-
 
