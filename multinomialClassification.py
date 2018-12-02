@@ -24,6 +24,8 @@ def fromOneDimMatrixToArray( oneDimMatrix ):
     '''
     return np.array( oneDimMatrix )[ 0 ]
 
+# ---------------------------
+# Model Specific Functions
 def trainParameterGivenTopic( topicWordFrequencyArray, smoothingParam = 0 ):
     '''
     Given a numpy array where ith element corrseponds to freq of
@@ -54,6 +56,8 @@ def computeLogLikelihood( testWordFrequencyArray, parameterArray ):
     logParam = np.log( parameterArray )
     return np.dot( testWordFrequencyArray, logParam )
 
+# ----------------------------
+# Generic function
 def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikelihood ):
     '''
     Predict output topics of testingMat via evalScoreF x parameterArray
@@ -90,7 +94,9 @@ def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikeli
         predictedTopicL.append( maxTopic )
     return predictedTopicL
 
-def plotFigure( confusionMat, topicList, topicIdxToStrFName ):
+
+# --------------------------
+def plotFigure( confusionMat, topicIdxToStrFName ):
     '''
     Plots a heatmap confusion matrxi
 
@@ -100,6 +106,7 @@ def plotFigure( confusionMat, topicList, topicIdxToStrFName ):
     ax = fig.subplots( nrows=1, ncols=1 )
 
     topicIdxToTopicD = mapFromTopicIdxToTopic( topicIdxToStrFName )
+    topicList = list( topicIdxToTopicD.keys() )
     topics = [ topicIdxToTopicD[i] for i in topicList ]
     # heatmap
     heatmap = ax.matshow( confusionMat, cmap="Reds", aspect="equal" )
@@ -153,23 +160,16 @@ def mapFromTopicIdxToTopic( topicFName ):
         idxToStrD[ topicIdx ] = topic
     return idxToStrD
 
-# -------------------------
-# Main Function
-
-if __name__ == '__main__':
-    SMOOTH = 0.01
+# ------------------
+# Per Split computation
+def splitResults( splitNumber, smoothingParam=0.01 ):
     '''
-    Step 1. Read and load training/test data split
-    Step 2. partition training/test data per topic
-    Step 3. Derive ML estimates from training data (per topic)
-    Step 4. from test data, compute predictions of trained model
-    Step 5. Compute confusion matrix
-    Step 6. Plot confusion matrix and report
-
-    To simply plot existing confusion matrix, skip Step 4,5
+    Given a training/testing data split number, and smoothing param
+    returns 3 things
+    - a dictionary of trained ML parameter Array
+    - prediction list for training set given the parameters
+    - actual topic list for training set
     '''
-    splitNumber = int( sys.argv[1] )
-    isDump = sys.argv[2] == 'dump'
     # --------------------------------
     # Step 1. Read and load training/test data split
     #splitNumber = 0
@@ -177,10 +177,7 @@ if __name__ == '__main__':
     trainingLabelF = getFilename( splitNumber, isTraining=True, isLabel=True ) 
     testingMatF = getFilename( splitNumber, isTraining=False, isLabel=False ) 
     testingLabelF = getFilename( splitNumber, isTraining=False, isLabel=True ) 
-    # For Confusion Matrix Writing
-    confusionDataDir = 'confusionMatrix'
-    confusionMatrixF = getFilename( splitNumber, isTraining=False, isLabel=False, dataDirName=confusionDataDir, alternateClusterName='' )
-     
+
     with open( trainingMatF, 'rb' ) as f:
         trainingMat = csr_matrix( pickle.load( f ) )
         # fast matrix, whose get_row returns ONLY non-zero values
@@ -196,10 +193,8 @@ if __name__ == '__main__':
     # Step 2. partition training/test data per topic 
  
     (topicList, partitionedTrainingD) = partitionDataPerTopic( trainingLabel, trainingMat )
-    # actually don't think I need this
-    (_, partitionedTestingD) = partitionDataPerTopic( testingLabel, testingMat )
     # key: topic, val: matrix whose col dimensions = |lexicon|, row dim = # docs belonging to topic
-
+    
     trainingWordFrequencyD = {}
     # key: topic, value: array of topic wide frequency, len( array ) = | lexicon |
     for topic in topicList:
@@ -223,16 +218,62 @@ if __name__ == '__main__':
     print( "Elapsed Time for predicting : ", endTime-startTime )
     actual = testingLabel
 
+    return mlEstimatesD, predicted, actual
+
+
+# -------------------------
+# Main Function
+
+if __name__ == '__main__':
+    SMOOTH = 0.01
+    '''
+    Step 1. Read and load training/test data split
+    Step 2. partition training/test data per topic
+    Step 3. Derive ML estimates from training data (per topic)
+    Step 4. from test data, compute predictions of trained model
+    Step 5. Compute confusion matrix
+    Step 6. Plot confusion matrix and report
+
+    To simply plot existing confusion matrix, skip Step 4,5
+    '''
+    #splitNumber = int( sys.argv[1] )
+    #isDump = sys.argv[2] == 'dump'
+
+    # Steps 1-4 condensed into splitResults function
+    totalNumSplits = 10
+    predictedL = []
+    actualL = []
+    for i in range( totalNumSplits ):
+        (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH )
+        predictedL.append( predicted )
+        actualL.append( actual )
+    # mlEstimatesD.. is not needed now, but will be needed
+    # for updating using gradientDescent
 
     # -----------------------------
     # Step 5. Compute confusion matrix
-    confusion_matrix_unnorm = metrics.confusion_matrix( actual, predicted, labels=topicList )
-    confusionMatrix = confusion_matrix_unnorm.astype( 'float' ) /\
-                        confusion_matrix_unnorm.sum( axis=1 )[:, np.newaxis]
 
+    # For Confusion Matrix Writing
+    confusionDataDir = 'confusionMatrix'
+    confusionMatrixFList = [] # list of strings
+    confusionMatrixL = [] # list of confusion matrices for CV
+    for i in range( totalNumSplits ):
+        # files to write out to
+        confusionMatrixF = getFilename( i, isTraining=False, isLabel=False, dataDirName=confusionDataDir, alternateClusterName='' )
+        confusionMatrixFList.append( confusionMatrixF )
+
+        # actual confusion matrices
+        actual = actualL[ i ]
+        predicted = predictedL[ i ]
+        confusion_matrix_unnorm = metrics.confusion_matrix( actual, predicted )#, labels=topicList )
+        confusionMatrix = confusion_matrix_unnorm.astype( 'float' ) /\
+                        confusion_matrix_unnorm.sum( axis=1 )[:, np.newaxis]
+        confusionMatrixL.append( confusionMatrix )
+    
     # will fail if file exists 
     # creates file if it hasn't existed before
-    if isDump:
+    for i in range( totalNumSplits ):
+        confusionMatrix = confusionMatrixL[ i ]
         try: 
             with open( confusionMatrixF, 'xb' ) as f:
                 pickle.dump( confusionMatrix, f, protocol=pickle.HIGHEST_PROTOCOL )
@@ -241,18 +282,15 @@ if __name__ == '__main__':
                 pickle.dump( confusionMatrix, f, protocol=pickle.HIGHEST_PROTOCOL )
     # ----------------------------
     # Step 6. Plot confusion matrix and report
-    with open( confusionMatrixF, 'rb' ) as f:
-        confusionMatrix = pickle.load( f )
-    
     # code from Samy
+
+    avgConfusionMatrix = np.zeros( confusionMatrixL[0].shape )
+    for mat in confusionMatrixL:
+        for rowIdx, row in enumerate( mat ):
+            for colIdx, entry in enumerate( row ):
+                avgConfusionMatrix[ rowIdx, colIdx ] += float( entry / totalNumSplits )
+
     topicDFName = './data_pickles/twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'
-    plotFigure( confusionMatrix, topicList, topicDFName )
-    confusionMatrixFL = []
-    confusionMatrixL = []
-    for i in range( 3 ):
-        confusionMatrixFL.append( getFilename( i, isTraining=False, isLabel=False, dataDirName=confusionDataDir, alternateClusterName='' ) )
-    for confusionMatrixFile in confusionMatrixFL:
-        with open( confusionMatrixFile, 'rb' ) as f:
-            confusionMatrixL.append( pickle.load( f ) )
+    plotFigure( avgConfusionMatrix, topicDFName )
     reportPrecision( confusionMatrixL )
 
