@@ -56,7 +56,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     matDim = docWordFrequencyMat.get_shape()
     lexiconSize = matDim[1]
     numDocs = matDim[0]
-    #numDocsPerUpdate = 50# temporarily override
+    #numDocsPerUpdate = numDocs# temporarily override
     assert( numDocsPerUpdate <= numDocs )
     
     # initialize parameter and then update using fixed-point algorithm
@@ -124,7 +124,8 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
         denomArray[ docIdx ] = diPoch( np.array( [sumParameters] ), np.array( [docWordFrequencyArray.sum()] ) )
     # add by column
     numeratorArray = numeratorMat.sum( axis=0 )
-    newParameters = currentParameters * numeratorArray / denomArray # floatdivision
+    denomScalar = denomArray.sum() #denominator is scalar with respect to word
+    newParameters = currentParameters * numeratorArray / denomScalar # floatdivision
     return newParameters
 
 def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
