@@ -57,6 +57,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     matDim = docWordFrequencyMat.get_shape()
     lexiconSize = matDim[1]
     numDocs = matDim[0]
+    numDocsPerUpdate = 50# temporarily override
     assert( numDocsPerUpdate <= numDocs )
     
     # initialize parameter and then update using fixed-point algorithm
@@ -69,7 +70,8 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
         oldAlpha = smoothArray( newAlpha, smoothingParam )
         updateDocIdxList = [( iterNum * numDocsPerUpdate + j ) % numDocs for j in range( numDocsPerUpdate) ]
         updateSubM = docWordFrequencyMat[ updateDocIdxList, : ] 
-        newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha )
+        newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha, numDocs )
+        #newAlpha = updateParameter( updateSubM, numDocs, oldAlpha, numDocs )
             
         if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
             print( "Update complete in ", iterNum, " iterations! " )
@@ -83,7 +85,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     return newAlpha        
 
 from scipy.special import digamma
-def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters ):
+def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ):
     '''
     given a CSR matrix with numDocsPerUpdate number of rows, with |currentParameters| column
     and numDocsPErUpdate, and currentParameters numpy Array
@@ -113,10 +115,12 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters ):
 
     numeratorMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
     denomMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
-    diGammaSum = digamma( sumParameters )
-    diGammaParams = digamma( currentParameters )
+    diGammaSum = digamma( sumParameters ) / numDocs * numDocsPerUpdate
+    diGammaParams = digamma( currentParameters ) / numDocs * numDocsPerUpdate
     print( diGammaSum, diGammaParams )
+    assert( numDocsPerUpdate == docWordFrequencyMat.get_shape()[0] )
     for docIdx in range( numDocsPerUpdate ):
+        # need to be careful with zeros
         # per Row approach
         docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
         # digamma( array + array ) - array 
