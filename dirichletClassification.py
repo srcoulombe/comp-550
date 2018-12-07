@@ -79,7 +79,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
 
     # SMOOTHING and sanity checks
     newAlpha = smoothArray( newAlpha, smoothingParam )
-    
+     
     return newAlpha        
 
 
@@ -363,6 +363,9 @@ if __name__ == '__main__':
     SMOOTH = 0.01
     MAX_ITER = 1
     NUM_DOCS_PER_UPDATE = 1
+
+    MAX_ITER = int( sys.argv[ 1 ] )
+    NUM_DOCS_PER_UPDATE = int( sys.argv[ 2 ] )
     '''
     Step 1. Read and load training/test data split
     Step 2. partition training/test data per topic
@@ -377,10 +380,10 @@ if __name__ == '__main__':
     #isDump = sys.argv[2] == 'dump'
 
     # Steps 1-4 condensed into splitResults function
-    totalNumSplits = 1
+    totalNumSplits = 2
     predictedL = []
     actualL = []
-    for i in range( totalNumSplits ):
+    for i in range( 1, totalNumSplits ):
         (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE )
         predictedL.append( predicted )
         actualL.append( actual )
