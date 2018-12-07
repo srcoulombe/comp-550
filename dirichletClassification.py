@@ -75,7 +75,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
             print( "Update complete in ", iterNum, " iterations! " )
             break
         # otherwise, continue to update
-    print( "Took ", time.time() - startTime, ' for updating parameter ' )
+    print( "Took on average ", (time.time() - startTime) / maxIter, ' per iteration in updating parameter ' )
 
     # SMOOTHING and sanity checks
     newAlpha = smoothArray( newAlpha, smoothingParam )
@@ -361,7 +361,7 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
 
 if __name__ == '__main__':
     SMOOTH = 0.01
-    MAX_ITER = 1000
+    MAX_ITER = 1
     NUM_DOCS_PER_UPDATE = 1
     '''
     Step 1. Read and load training/test data split
