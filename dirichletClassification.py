@@ -26,6 +26,20 @@ def fromOneDimMatrixToArray( oneDimMatrix ):
 
 # ---------------------------
 # Model Specific Functions
+def smoothArray( unsmoothedParamArray, smoothingParam ):
+    '''
+    given a numpy array of non-negative array, and a smoothingParam
+    perform smoothing
+
+    smootheArray[i] = unsmootheParamArray[i] + smoothingParam * (smallest positive unsmootheParam )
+    returns a numpy array of size unsmootheParamArray.shape[0]
+    '''
+    nonZeroIdxArray = np.nonzero( unsmoothedParamArray )[0]
+    print( unsmoothedParamArray[ nonZeroIdxArray ] )
+    smallestNonZeroVal = np.amin( unsmoothedParamArray[ nonZeroIdxArray ] )
+    assert( smallestNonZeroVal > 0 )
+    return unsmoothedParamArray + smoothingParam * smallestNonZeroVal
+
 def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPerUpdate=1, maxIter=1000, thresholdVal = 10**(-6) ):
     '''
     Given a CSR matrix whose ith row corrseponds to an array of freq of
@@ -47,13 +61,16 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     
     # initialize parameter and then update using fixed-point algorithm
     # essentially a thresholding method
-    newAlpha = np.ones( lexiconSize )
+    newAlpha = np.ones( lexiconSize ) * 2
     startTime = time.time()
     for iterNum in range( maxIter ):
-        oldAlpha = newAlpha
+        # smoothing must happen per iteration
+        
+        oldAlpha = smoothArray( newAlpha, smoothingParam )
         updateDocIdxList = [( iterNum * numDocsPerUpdate + j ) % numDocs for j in range( numDocsPerUpdate) ]
         updateSubM = docWordFrequencyMat[ updateDocIdxList, : ] 
         newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha )
+            
         if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
             print( "Update complete in ", iterNum, " iterations! " )
             break
@@ -61,9 +78,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     print( "Took ", time.time() - startTime, ' for updating parameter ' )
 
     # SMOOTHING and sanity checks
-    smallestAlpha = np.amin( newAlpha )
-    assert( smallestAlpha > 0 ) # parameters of Dirichlet /must/ be strictly positive
-    newAlpha = newAlpha + smallestAlpha * smoothingParam
+    newAlpha = smoothArray( newAlpha, smoothingParam )
     
     return newAlpha        
 
@@ -100,6 +115,7 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters ):
     denomMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
     diGammaSum = digamma( sumParameters )
     diGammaParams = digamma( currentParameters )
+    print( diGammaSum, diGammaParams )
     for docIdx in range( numDocsPerUpdate ):
         # per Row approach
         docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
@@ -107,12 +123,18 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters ):
         numeratorMat[ docIdx, : ] = digamma( docWordFrequencyArray + currentParameters ) - diGammaParams 
         # digamma( array + scalar ) - scalar 
         denomMat[ docIdx, : ] = digamma( docWordFrequencyArray + sumParameters ) - diGammaSum 
-   
+  
+    print( "nonzero numerators", numeratorMat[ np.nonzero( numeratorMat ) ] )
+    print( "corresponding denoms", denomMat[ np.nonzero( numeratorMat ) ] )
     # add by column
     numeratorArray = numeratorMat.sum( axis=0 )
+
     denomArray = denomMat.sum( axis=0 )
+    print( "numeratorArray nonzero: ", numeratorArray[ np.nonzero( numeratorArray ) ] )
+    print( "corresponding denomArray: ", denomArray[ np.nonzero( numeratorArray ) ] )
     newParameters = currentParameters * numeratorArray / denomArray # floatdivision
-    return newParameters 
+    # having some not a number issues
+    return np.nan_to_num( newParameters ) 
 
 def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
     '''
