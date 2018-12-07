@@ -26,173 +26,11 @@ def fromOneDimMatrixToArray( oneDimMatrix ):
 
 # ---------------------------
 # Model Specific Functions
-def smoothArray( unsmoothedParamArray, smoothingParam ):
-    '''
-    given a numpy array of non-negative array, and a smoothingParam
-    perform smoothing
-
-    smootheArray[i] = unsmootheParamArray[i] + smoothingParam * (smallest positive unsmootheParam )
-    returns a numpy array of size unsmootheParamArray.shape[0]
-    '''
-    nonZeroIdxArray = np.nonzero( unsmoothedParamArray )[0]
-    smallestNonZeroVal = np.amin( unsmoothedParamArray[ nonZeroIdxArray ] )
-    assert( smallestNonZeroVal > 0 )
-    return unsmoothedParamArray + smoothingParam * smallestNonZeroVal
-
-def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPerUpdate=1, maxIter=1000, powerThreshold = -6 ):
-    '''
-    Given a CSR matrix whose ith row corrseponds to an array of freq of
-    in document, and a smoothing param and a numDocsPerUpdate, and a maxIter
-    returns 
-    - a list of parameters that are ML estimates of prob occurence
-    for each word
-    - a 3-tuple of reporting statistics
-
-    one iteration of updates parameter with numDocsPerUpdate
-    Assumes fixed-point algorithm (gradient ascent)
-
-    returns a numpy array of parameters:
-    - size = len( docWordFrequencyArray column)
-    - values are ML estimates of dirichlet alpha parameters
-    AND a 3-tuple:
-    ( timeTakenToTrainThisTopic, numIterationsToTrain, numDocPerUpdate )
-    '''
-    thresholdVal = 10 ** (powerThreshold)
-    matDim = docWordFrequencyMat.get_shape()
-    lexiconSize = matDim[1]
-    numDocs = matDim[0]
-    #numDocsPerUpdate = numDocs# temporarily override
-    assert( numDocsPerUpdate <= numDocs )
-    
-    # initialize parameter and then update using fixed-point algorithm
-    # essentially a thresholding method
-    newAlpha = np.ones( lexiconSize ) * 2
-    startTime = time.time()
-    actualNumIter = maxIter
-    for iterNum in range( maxIter ):
-        # smoothing must happen per iteration
-        
-        oldAlpha = smoothArray( newAlpha, smoothingParam )
-        updateDocIdxList = [( iterNum * numDocsPerUpdate + j ) % numDocs for j in range( numDocsPerUpdate) ]
-        updateSubM = docWordFrequencyMat[ updateDocIdxList, : ] 
-        newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha, numDocs )
-            
-        if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
-            actualNumIter = iterNum
-            break
-        # otherwise, continue to update
-    endTime = time.time()
-    # SMOOTHING and sanity checks
-    newAlpha = smoothArray( newAlpha, smoothingParam )
-     
-    return (newAlpha, endTime-startTime, actualNumIter, actualNumIter * numDocsPerUpdate)        
-
-
-from scipy.special import digamma
-def diPoch( x, y ):
-    '''
-    Given two Arrays
-    - x: a numpy array with strictly positive values
-    - y: a numpy array with non-negative values
-    returns a numpy array that is roughly:
-     - digamma( x+y ) - digamma( x )
-     - special attention is paid for y(i) = 0
-
-    '''
-    outDiPochhammer = np.zeros( x.shape[0] )
-    nonZeroIdx = np.nonzero( y )
-    outDiPochhammer[ nonZeroIdx ] = x[ nonZeroIdx ] + y[ nonZeroIdx ]
-    return outDiPochhammer
-
-def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ):
-    '''
-    given a CSR matrix with numDocsPerUpdate number of rows, with |currentParameters| column
-    and numDocsPErUpdate, and currentParameters numpy Array
-
-    return new dirichlet parameters by fixed-point algorithm
-
-    Assumes fixed-point algorithm
-
-    returns a numpy array of parameters:
-    - size = len( currentParameters )
-    '''
-    sumParameters = currentParameters.sum()
-    lexiconSize = currentParameters.shape[0]
-    newParameters = currentParameters
-
-    numeratorMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
-    denomArray = np.zeros( numDocsPerUpdate  )
-    assert( numDocsPerUpdate == docWordFrequencyMat.get_shape()[0] )
-    for docIdx in range( numDocsPerUpdate ):
-        docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
-        allZeroDocument = np.nonzero( docWordFrequencyArray )[0].shape[0] == 0
-        numeratorMat[ docIdx, : ] = diPoch( currentParameters, docWordFrequencyArray )
-        denomArray[ docIdx ] = diPoch( np.array( [sumParameters] ), np.array( [docWordFrequencyArray.sum()] ) )
-    # add by column
-    numeratorArray = numeratorMat.sum( axis=0 )
-    denomScalar = denomArray.sum() #denominator is scalar with respect to word
-
-    # BUG: when using 1 doc per update, and encountering a BUGGY file with empty word count,
-    #      updated parameters are NaN
-    # FIX: simply ignore update based on this faulty document
-    if denomScalar == 0:
-        # means that should return old parameter
-        return currentParameters
-    newParameters = currentParameters * numeratorArray / denomScalar # floatdivision
-    return newParameters
-
-def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
-    '''
-    Given a numpy array where ith element corrseponds to freq of
-    ith element in topic corpus, and a smoothing param
-    returns a numpy array of parameters that are ML estimates of prob occurence
-    for each word
-
-    returns a numpy array of parameters:
-    - size = len( topicWordFrequencyArray )
-    - values are ML estimates of prob occurence for each word
-    '''
- 
-    mlEstimateArray = topicWordFrequencyArray + smoothingParam
-    denominator = np.sum( mlEstimateArray )
-    return mlEstimateArray / denominator
-def computeLogLikelihood_multi( testWordFrequencyArray, parameterArray ):
-    '''
-    given a test sentence represented by an array of word-frequency
-    and parameters for a multinomial distribution
-    calcluate log-likelihood of seeing test sentence
-
-    Assumes Naive Bayes assumption
-
-    - testWordFrequencyArray: numpy array of freqeucny count for word, numpy array
-    - parameterArray: numpy array of size |lexicon|, corresponding to values of multinomial
-
-    returns a number
-    '''
-    logParam = np.log( parameterArray )
-    return np.dot( testWordFrequencyArray, logParam )
-
-
-from scipy.special import poch
-# pochhammer function: input (x,y) -> returns a number defined as gamma(x+y) / gammy(x)
-# or equivalently: gamma( sum of args ) / gamma( first arg )
-def computeLogLikelihood( testWordFrequencyArray, parameterArray ):
-    '''
-    given a testWordFrequencyArray, and a parameterArray
-    returns loglikelihood function
-
-    - each Array is a numpy array with same length (length = size of lexicon)
-    - both Arrays are aligned (i.e. tWFArray[i] corresponds to frequency of word i,
-                                    pArray[i] corresponds to dirichlet parameter for word i )
-    assumes dirichlet-multinomial
-    '''
-    logFirstFraction = - log( poch ( parameterArray.sum(), testWordFrequencyArray.sum() ) )
-    logSecondFractionArray = log( poch ( parameterArray, testWordFrequencyArray ) )
-    return logFirstFraction + logSecondFractionArray.sum()
+import dirichletModel
 
 # ----------------------------
 # Generic function
-def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikelihood ):
+def predict( testingMat, parameterArrayD, topicList, evalScoreF ):
     '''
     Predict output topics of testingMat via evalScoreF x parameterArray
 
@@ -208,7 +46,7 @@ def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikeli
       o topic parameter numpy array (for topic multinomial model)
     returns 
       o a number that assigns score to that topic
-     in our case, this is computeLogLikelihood function
+    Typically, this is *model.computeLogLikelihood function
 
     returns a list of topics with highest score
     - size = # rows in CSR_matrix
@@ -294,6 +132,39 @@ def mapFromTopicIdxToTopic( topicFName ):
         idxToStrD[ topicIdx ] = topic
     return idxToStrD
 
+def reportTrainAndTestStatistics( trainTestStatisticsL ):
+    '''
+    Given a list of lists, where reports statistics for a particular split
+    - 0th ele: is a list of time taken to train a topic
+    - 1st ele: is a list of numIter taken to train each topic
+    - 2nd ele: is a list of numDocs used to train per topic
+    - 3rd ele: is a list of length 1, reporting time taken to generate test prediction
+
+    Side Effect: prints out statistics per topic, for a splitNumber
+    '''
+    topicStatsTimeL = trainTestStatisticsL[ 0 ]
+    topicStatsNumIterL = trainTestStatisticsL[ 1 ]
+    topicStatsNumDocsL = trainTestStatisticsL[ 2 ]
+    predictionTimeL = trainTestStatisticsL[ 3 ]
+
+    avgTime = mean( topicStatsTimeL )
+    stdevTime = stdev( topicStatsTimeL )
+    avgIter = mean( topicStatsNumIterL )
+    stdevIter = stdev( topicStatsNumIterL )
+    avgDocs = mean( topicStatsNumDocsL )
+    stdevDocs = stdev( topicStatsNumDocsL )
+    timeToPredictTest = predictionTimeL[0]
+    print()
+    print( "Avg time to train model per topic: ", avgTime, "+- ", stdevTime )
+    print( "Avg time per iteration is: ", avgTime / float( avgIter ) )
+    print( "Avg time per document is: ", avgTime / float( avgDocs ) )
+    print( "Total time taken to update topics is", sum( topicStatsTimeL ) )
+    print( "Avg number of iterations per topic: ", avgIter , "+- ", stdevIter )
+    print( "Max NumIter was: ", maxIter )
+    print( "Avg Num documents used for training per topic: ", avgDocs, "+- ", stdevDocs )
+    print( "Elapsed Time for predicting dirichlet: ", timeToPredictTest )
+    return
+
 # ------------------
 # Per Split computation
 def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpdate=1, powerThreshold=-6 ):
@@ -304,8 +175,9 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     - prediction list for training set given the parameters
     - actual topic list for training set
 
-    Side Effect: prints out statistics per topic, for this splitNumber
     '''
+    trainParameterGivenTopic = dirichletModel.trainParameterGivenTopic
+    computeLogLikelihood = dirichletModel.computeLogLikelihood
     # --------------------------------
     # Step 1. Read and load training/test data split
     #splitNumber = 0
@@ -352,32 +224,20 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
         topicStatsNumDocsL.append( numDocumentsToTrain)
         # BUG: note that ML estimates are NOT exactly one
         #print( np.sum( mlEstimatesD[topic] ) )
-  
-    avgTime = mean( topicStatsTimeL )
-    stdevTime = stdev( topicStatsTimeL )
-    avgIter = mean( topicStatsNumIterL )
-    stdevIter = stdev( topicStatsNumIterL )
-    avgDocs = mean( topicStatsNumDocsL )
-    stdevDocs = stdev( topicStatsNumDocsL )
-    print()
-    print( "Avg time to train model per topic: ", avgTime, "+- ", stdevTime )
-    print( "Avg time per iteration is: ", avgTime / float( avgIter ) )
-    print( "Avg time per document is: ", avgTime / float( avgDocs ) )
-    print( "Total time taken to update topics is", sum( topicStatsTimeL ) )
-    print( "Avg number of iterations per topic: ", avgIter , "+- ", stdevIter )
-    print( "Max NumIter was: ", maxIter )
-    print( "Avg Num documents used for training per topic: ", avgDocs, "+- ", stdevDocs )
-
-
+ 
+    trainTestStatisticsL = [] # a list of lists
+    trainTestStatisticsL.append( topicStatsTimeL )
+    trainTestStatisticsL.append( topicStatsNumIterL)
+    trainTestStatisticsL.append( topicStatsNumDocsL )
     # ------------------------------
     # Step 4. from test data, compute predictions of trained model
     startTime = time.time()
-    predicted = predict( testingMat, mlEstimatesD, topicList )
+    predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
     endTime = time.time()
-    print( "Elapsed Time for predicting dirichlet: ", endTime-startTime )
+    trainTestStatisticsL.append( [endTime-startTime] )
 
     actual = testingLabel
-    return mlEstimatesD, predicted, actual
+    return mlEstimatesD, predicted, actual, trainTestStatisticsL
 
 
 # -------------------------
@@ -403,20 +263,15 @@ if __name__ == '__main__':
 
     To simply plot existing confusion matrix, skip Step 4,5
     '''
-    #splitNumber = int( sys.argv[1] )
-    #isDump = sys.argv[2] == 'dump'
-
     # Steps 1-4 condensed into splitResults function
     #totalNumSplits = 2
     predictedL = []
     actualL = []
     for i in range( totalNumSplits ):
-        (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE, POWER_THRESHOLD )
+        (mlEstimatesD, predicted, actual, trainTestStatisticsL) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE, POWER_THRESHOLD )
         predictedL.append( predicted )
         actualL.append( actual )
-    # mlEstimatesD.. is not needed now, but will be needed
-    # for updating using gradientDescent
-
+        reportTrainAndTestStatistics( trainTestStatisticsL )
     # -----------------------------
     # Step 5. Compute confusion matrix
 
@@ -460,4 +315,3 @@ if __name__ == '__main__':
     topicDFName = './data_pickles/twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'
     plotFigure( avgConfusionMatrix, topicDFName )
     reportPrecision( confusionMatrixL )
-
