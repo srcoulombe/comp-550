@@ -39,20 +39,25 @@ def smoothArray( unsmoothedParamArray, smoothingParam ):
     assert( smallestNonZeroVal > 0 )
     return unsmoothedParamArray + smoothingParam * smallestNonZeroVal
 
-def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPerUpdate=1, maxIter=1000, thresholdVal = 10**(-6) ):
+def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPerUpdate=1, maxIter=1000, powerThreshold = -6 ):
     '''
     Given a CSR matrix whose ith row corrseponds to an array of freq of
     in document, and a smoothing param and a numDocsPerUpdate, and a maxIter
-    returns a list of parameters that are ML estimates of prob occurence
+    returns 
+    - a list of parameters that are ML estimates of prob occurence
     for each word
+    - a 3-tuple of reporting statistics
 
     one iteration of updates parameter with numDocsPerUpdate
     Assumes fixed-point algorithm (gradient ascent)
 
     returns a numpy array of parameters:
     - size = len( docWordFrequencyArray column)
-    - values are ML estimates of dirichlet alpha parameters 
+    - values are ML estimates of dirichlet alpha parameters
+    AND a 3-tuple:
+    ( timeTakenToTrainThisTopic, numIterationsToTrain, numDocPerUpdate )
     '''
+    thresholdVal = 10 ** (powerThreshold)
     matDim = docWordFrequencyMat.get_shape()
     lexiconSize = matDim[1]
     numDocs = matDim[0]
@@ -77,14 +82,10 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
             break
         # otherwise, continue to update
     endTime = time.time()
-    print( "Update complete in ", actualNumIter, " iterations! " )
-    print( "Took on average ", (endTime - startTime) / actualNumIter, ' per iteration in updating parameter, total time was: ', endTime - startTime, 'sec' )
-    print( "Num documents used for training: ", actualNumIter * numDocsPerUpdate )
-
     # SMOOTHING and sanity checks
     newAlpha = smoothArray( newAlpha, smoothingParam )
      
-    return newAlpha        
+    return (newAlpha, endTime-startTime, actualNumIter, actualNumIter * numDocsPerUpdate)        
 
 
 from scipy.special import digamma
@@ -295,13 +296,15 @@ def mapFromTopicIdxToTopic( topicFName ):
 
 # ------------------
 # Per Split computation
-def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpdate=1 ):
+def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpdate=1, powerThreshold=-6 ):
     '''
     Given a training/testing data split number, and smoothing param
     returns 3 things
     - a dictionary of trained ML parameter Array
     - prediction list for training set given the parameters
     - actual topic list for training set
+
+    Side Effect: prints out statistics per topic, for this splitNumber
     '''
     # --------------------------------
     # Step 1. Read and load training/test data split
@@ -330,35 +333,44 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
    
     # for Dirichlet, we don't need topic wide frequency
     trainingWordFrequencyD = partitionedTrainingD
-    # multinomial case
-    '''
-    trainingWordFrequencyD = {}
-    # key: topic, value: array of topic wide frequency, len( array ) = | lexicon |
-    for topic in topicList:
-        # multinomial case: 
-        # sum frequency row-wise
-        topicFrequencyMat = partitionedTrainingD[ topic ].sum( axis=0 )
-        trainingWordFrequencyD[ topic ] = fromOneDimMatrixToArray( topicFrequencyMat )
-    '''
     # ------------------------------
     # Step 3. Derive ML estimates from training data (per topic)
     mlEstimatesD = {}
+    topicStatsTimeL = []
+    topicStatsNumIterL = []
+    topicStatsNumDocsL = []
     for topic in topicList:
         # trainingWordFrequencyD[ topic ]
         # is a numpy array for multinomial
         # is a submatrix for dirichlet
-        mlEstimatesD[ topic ] = trainParameterGivenTopic( trainingWordFrequencyD[ topic ], smoothingParam=smoothingParam, maxIter=maxIter, numDocsPerUpdate=numDocsPerUpdate )
+        (mlEstimatesD[ topic ], timeTakenToTrain, numIterToTrain, numDocumentsToTrain ) = \
+                trainParameterGivenTopic( trainingWordFrequencyD[ topic ], \
+                smoothingParam=smoothingParam, maxIter=maxIter, \
+                numDocsPerUpdate=numDocsPerUpdate, powerThreshold=powerThreshold )
+        topicStatsTimeL.append( timeTakenToTrain )
+        topicStatsNumIterL.append(numIterToTrain)
+        topicStatsNumDocsL.append( numDocumentsToTrain)
         # BUG: note that ML estimates are NOT exactly one
         #print( np.sum( mlEstimatesD[topic] ) )
+  
+    avgTime = mean( topicStatsTimeL )
+    stdevTime = stdev( topicStatsTimeL )
+    avgIter = mean( topicStatsNumIterL )
+    stdevIter = stdev( topicStatsNumIterL )
+    avgDocs = mean( topicStatsNumDocsL )
+    stdevDocs = stdev( topicStatsNumDocsL )
+    print()
+    print( "Avg time to train model per topic: ", avgTime, "+- ", stdevTime )
+    print( "Avg time per iteration is: ", avgTime / float( avgIter ) )
+    print( "Avg time per document is: ", avgTime / float( avgDocs ) )
+    print( "Total time taken to update topics is", sum( topicStatsTimeL ) )
+    print( "Avg number of iterations per topic: ", avgIter , "+- ", stdevIter )
+    print( "Max NumIter was: ", maxIter )
+    print( "Avg Num documents used for training per topic: ", avgDocs, "+- ", stdevDocs )
+
 
     # ------------------------------
     # Step 4. from test data, compute predictions of trained model
-    '''
-    startTime = time.time()
-    predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood_multi )
-    endTime = time.time()
-    print( "Elapsed Time for predicting : ", endTime-startTime )
-    '''
     startTime = time.time()
     predicted = predict( testingMat, mlEstimatesD, topicList )
     endTime = time.time()
@@ -378,6 +390,9 @@ if __name__ == '__main__':
 
     MAX_ITER = int( sys.argv[ 1 ] )
     NUM_DOCS_PER_UPDATE = int( sys.argv[ 2 ] )
+    totalNumSplits = int(sys.argv[3])
+    POWER_THRESHOLD = -int(sys.argv[4]) 
+    # threshold for stopping FP will be if max( abs( alpha_diff ) ) <= 10**(POWER_THRESHOLD)
     '''
     Step 1. Read and load training/test data split
     Step 2. partition training/test data per topic
@@ -392,11 +407,11 @@ if __name__ == '__main__':
     #isDump = sys.argv[2] == 'dump'
 
     # Steps 1-4 condensed into splitResults function
-    totalNumSplits = 2
+    #totalNumSplits = 2
     predictedL = []
     actualL = []
     for i in range( totalNumSplits ):
-        (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE )
+        (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE, POWER_THRESHOLD )
         predictedL.append( predicted )
         actualL.append( actual )
     # mlEstimatesD.. is not needed now, but will be needed
