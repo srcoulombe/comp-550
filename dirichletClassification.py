@@ -35,7 +35,6 @@ def smoothArray( unsmoothedParamArray, smoothingParam ):
     returns a numpy array of size unsmootheParamArray.shape[0]
     '''
     nonZeroIdxArray = np.nonzero( unsmoothedParamArray )[0]
-    print( unsmoothedParamArray[ nonZeroIdxArray ] )
     smallestNonZeroVal = np.amin( unsmoothedParamArray[ nonZeroIdxArray ] )
     assert( smallestNonZeroVal > 0 )
     return unsmoothedParamArray + smoothingParam * smallestNonZeroVal
@@ -87,7 +86,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
 from scipy.special import digamma
 def diPoch( x, y ):
     '''
-    Given two scalars or two Arrays
+    Given two Arrays
     - x: a numpy array with strictly positive values
     - y: a numpy array with non-negative values
     returns a numpy array that is roughly:
@@ -117,26 +116,16 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
     newParameters = currentParameters
 
     numeratorMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
-    denomMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
+    denomArray = np.zeros( numDocsPerUpdate  )
     assert( numDocsPerUpdate == docWordFrequencyMat.get_shape()[0] )
-    sumParameterArray = np.repeat( sumParameters, lexiconSize ) 
     for docIdx in range( numDocsPerUpdate ):
-        # per Row approach
         docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
-        # digamma( array + array ) - array 
         numeratorMat[ docIdx, : ] = diPoch( currentParameters, docWordFrequencyArray )
-        # digamma( array + scalar ) - scalar 
-        denomMat[ docIdx, : ] = diPoch( sumParameterArray, docWordFrequencyArray )
-  
+        denomArray[ docIdx ] = diPoch( np.array( [sumParameters] ), np.array( [docWordFrequencyArray.sum()] ) )
     # add by column
     numeratorArray = numeratorMat.sum( axis=0 )
-
-    denomArray = denomMat.sum( axis=0 )
-    print( "numeratorArray nonzero: ", numeratorArray[ np.nonzero( numeratorArray ) ] )
-    print( "corresponding denomArray: ", denomArray[ np.nonzero( numeratorArray ) ] )
     newParameters = currentParameters * numeratorArray / denomArray # floatdivision
     return newParameters
-    #return np.nan_to_num( newParameters ) 
 
 def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
     '''
