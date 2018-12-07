@@ -26,39 +26,11 @@ def fromOneDimMatrixToArray( oneDimMatrix ):
 
 # ---------------------------
 # Model Specific Functions
-def trainParameterGivenTopic( topicWordFrequencyArray, smoothingParam = 0 ):
-    '''
-    Given a numpy array where ith element corrseponds to freq of
-    ith element in topic corpus, and a smoothing param
-    returns a list of parameters that are ML estimates of prob occurence
-    for each word
-
-    returns an array of parameters:
-    - size = len( topicWordFrequencyArray )
-    - values are ML estimates of prob occurence for each word
-    '''
-    mlEstimateArray = topicWordFrequencyArray + smoothingParam
-    denominator = np.sum( mlEstimateArray )
-    return mlEstimateArray / denominator
-def computeLogLikelihood( testWordFrequencyArray, parameterArray ):
-    '''
-    given a test sentence represented by an array of word-frequency
-    and parameters for a multinomial distribution
-    calcluate log-likelihood of seeing test sentence
-
-    Assumes Naive Bayes assumption
-
-    - testWordFrequencyArray: array of freqeucny count for word, numpy array
-    - parameterArray: numpy array of size |lexicon|, corresponding to values of multinomial
-
-    returns a number
-    '''
-    logParam = np.log( parameterArray )
-    return np.dot( testWordFrequencyArray, logParam )
+import multinomialModel
 
 # ----------------------------
 # Generic function
-def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikelihood ):
+def predict( testingMat, parameterArrayD, topicList, evalScoreF):
     '''
     Predict output topics of testingMat via evalScoreF x parameterArray
 
@@ -74,7 +46,7 @@ def predict( testingMat, parameterArrayD, topicList, evalScoreF=computeLogLikeli
       o topic parameter numpy array (for topic multinomial model)
     returns 
       o a number that assigns score to that topic
-     in our case, this is computeLogLikelihood function
+    Typically, this is *model.computeLogLikelihood function
 
     returns a list of topics with highest score
     - size = # rows in CSR_matrix
@@ -170,6 +142,8 @@ def splitResults( splitNumber, smoothingParam=0.01 ):
     - prediction list for training set given the parameters
     - actual topic list for training set
     '''
+    computeLogLikelihood = multinomialModel.computeLogLikelihood
+    trainParameterGivenTopic = multinomialModel.trainParameterGivenTopic
     # --------------------------------
     # Step 1. Read and load training/test data split
     #splitNumber = 0
@@ -213,7 +187,7 @@ def splitResults( splitNumber, smoothingParam=0.01 ):
     # ------------------------------
     # Step 4. from test data, compute predictions of trained model 
     startTime = time.time()
-    predicted = predict( testingMat, mlEstimatesD, topicList )
+    predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
     endTime = time.time()
     print( "Elapsed Time for predicting : ", endTime-startTime )
     actual = testingLabel

@@ -132,13 +132,15 @@ def mapFromTopicIdxToTopic( topicFName ):
         idxToStrD[ topicIdx ] = topic
     return idxToStrD
 
-def reportTrainAndTestStatistics( trainTestStatisticsL ):
+def reportTrainAndTestStatistics( trainTestStatisticsL, maxIter ):
     '''
     Given a list of lists, where reports statistics for a particular split
     - 0th ele: is a list of time taken to train a topic
     - 1st ele: is a list of numIter taken to train each topic
     - 2nd ele: is a list of numDocs used to train per topic
     - 3rd ele: is a list of length 1, reporting time taken to generate test prediction
+
+    AND a scalar maxIter
 
     Side Effect: prints out statistics per topic, for a splitNumber
     '''
@@ -271,7 +273,7 @@ if __name__ == '__main__':
         (mlEstimatesD, predicted, actual, trainTestStatisticsL) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE, POWER_THRESHOLD )
         predictedL.append( predicted )
         actualL.append( actual )
-        reportTrainAndTestStatistics( trainTestStatisticsL )
+        reportTrainAndTestStatistics( trainTestStatisticsL, MAX_ITER )
     # -----------------------------
     # Step 5. Compute confusion matrix
 
