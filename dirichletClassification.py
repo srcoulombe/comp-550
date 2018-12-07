@@ -61,7 +61,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     print( "Took ", time.time() - startTime, ' for updating parameter ' )
 
     # SMOOTHING and sanity checks
-    smallestAlpha = np.argmin( newAlpha )
+    smallestAlpha = np.amin( newAlpha )
     assert( smallestAlpha > 0 ) # parameters of Dirichlet /must/ be strictly positive
     newAlpha = newAlpha + smallestAlpha * smoothingParam
     
@@ -81,11 +81,37 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters ):
     - size = len( currentParameters )
     '''
     sumParameters = currentParameters.sum()
+    lexiconSize = currentParameters.shape[0]
     newParameters = currentParameters
+
+    '''
+    # Per Column approach
+    cscMat = docWordFrequencyMat.tocsc() 
+    for wordIdx in range( lexiconSize ):
+        # wordFrequencyPerDocArray should have size (numDocsPerUpdate)
+        wordFrequencyPerDocArray = fromOneDimMatrixToArray( cscMat.getcol( wordIdx ).sum( axis = 1  ).transpose() )
+        alpha_w = currentParameters[ wordIdx ]
+        numerator = ( digamma( wordFrequencyPerDocArray + alpha_w ) - digamma( alpha_w ) ).sum()
+        denom = ( digamma( wordFrequencyPerDocArray + sumParameters ) - digamma( sumParameters )  ).sum()
+        newParameters[ wordIdx ] = numerator / float( denom )
+    '''
+
+    numeratorMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
+    denomMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
+    diGammaSum = digamma( sumParameters )
+    diGammaParams = digamma( currentParameters )
+    for docIdx in range( numDocsPerUpdate ):
+        # per Row approach
+        docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
+        # digamma( array + array ) - array 
+        numeratorMat[ docIdx, : ] = digamma( docWordFrequencyArray + currentParameters ) - diGammaParams 
+        # digamma( array + scalar ) - scalar 
+        denomMat[ docIdx, : ] = digamma( docWordFrequencyArray + sumParameters ) - diGammaSum 
    
-    for i in range( numDocsPersUpdate ):
-        docWordFrequentArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( i ).sum( axis = 0  ))
-        
+    # add by column
+    numeratorArray = numeratorMat.sum( axis=0 )
+    denomArray = denomMat.sum( axis=0 )
+    newParameters = currentParameters * numeratorArray / denomArray # floatdivision
     return newParameters 
 
 def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
