@@ -57,7 +57,7 @@ def computeLogLikelihood_multi( testWordFrequencyArray, parameterArray ):
     return np.dot( testWordFrequencyArray, logParam )
 
 
-from scipy.special import poch
+from scipy.special import poch, gammaln
 # pochhammer function: input (x,y) -> returns a number defined as gamma(x+y) / gammy(x)
 # or equivalently: gamma( sum of args ) / gamma( first arg )
 def computeLogLikelihood( testWordFrequencyArray, parameterArray ):
@@ -71,13 +71,22 @@ def computeLogLikelihood( testWordFrequencyArray, parameterArray ):
     assumes dirichlet-multinomial
     '''
     logPochMinka = lambda x,y: log( poch( x, y ) )
-    # input: 2-tuple x -> output: log(poch( x[0], x[1] ) )
-    logPochMinkaTuple = lambda x: log( poch( x[0],x[1] ) )
-    # computes log( gamma( sum of args ) / gamma( first arg  ) )
-    logFirstFraction = - logPochMinka( parameterArray.sum(), testWordFrequencyArray.sum() )
-    tupleIterableFromTwoArrays = zip( parameterArray, testWordFrequencyArray )
-    logSecondFractionIterable = map( logPochMinkaTuple, tupleFromTwoArrays )  
-    return logFirstFraction + sum( logSecondFractionIterable )
+    # if x, y are scalars: returns a scalar
+    # otherwise return: log of [ poch( x[i], y[i] ) ] 
+    
+   
+    logFirstFraction = - log( poch ( parameterArray.sum(), testWordFrequencyArray.sum() ) )
+    # Slowest version: using iterables
+    #secondFractionIterable = map( poch, parameterArray, testWordFrequencyArray )
+    # log( np.fromiter( secondFractionIterable, float ) )
+    
+    # middle version: using poch's array iteration
+    #dataArray = parameterArray + testWordFrequencyArray
+    #return logFirstFraction + ( gammaln( dataArray ) - gammaln( parameterArray ) ).sum()
+    
+    #fastest version
+    logSecondFractionArray = log( poch ( parameterArray, testWordFrequencyArray ) )
+    return logFirstFraction + logSecondFractionArray.sum()
 
 # ----------------------------
 # Generic function
@@ -234,13 +243,19 @@ def splitResults( splitNumber, smoothingParam=0.01 ):
         #print( np.sum( mlEstimatesD[topic] ) )
 
     # ------------------------------
-    # Step 4. from test data, compute predictions of trained model 
+    # Step 4. from test data, compute predictions of trained model
+    '''
+    startTime = time.time()
+    predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood_multi )
+    endTime = time.time()
+    print( "Elapsed Time for predicting : ", endTime-startTime )
+    '''
     startTime = time.time()
     predicted = predict( testingMat, mlEstimatesD, topicList )
     endTime = time.time()
-    print( "Elapsed Time for predicting : ", endTime-startTime )
-    actual = testingLabel
+    print( "Elapsed Time for predicting dirichelt: ", endTime-startTime )
 
+    actual = testingLabel
     return mlEstimatesD, predicted, actual
 
 
@@ -263,7 +278,7 @@ if __name__ == '__main__':
     #isDump = sys.argv[2] == 'dump'
 
     # Steps 1-4 condensed into splitResults function
-    totalNumSplits = 10
+    totalNumSplits = 1
     predictedL = []
     actualL = []
     for i in range( totalNumSplits ):
