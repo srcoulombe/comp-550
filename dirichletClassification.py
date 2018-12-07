@@ -120,11 +120,19 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
     assert( numDocsPerUpdate == docWordFrequencyMat.get_shape()[0] )
     for docIdx in range( numDocsPerUpdate ):
         docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
+        allZeroDocument = np.nonzero( docWordFrequencyArray )[0].shape[0] == 0
         numeratorMat[ docIdx, : ] = diPoch( currentParameters, docWordFrequencyArray )
         denomArray[ docIdx ] = diPoch( np.array( [sumParameters] ), np.array( [docWordFrequencyArray.sum()] ) )
     # add by column
     numeratorArray = numeratorMat.sum( axis=0 )
     denomScalar = denomArray.sum() #denominator is scalar with respect to word
+
+    # BUG: when using 1 doc per update, and encountering a BUGGY file with empty word count,
+    #      updated parameters are NaN
+    # FIX: simply ignore update based on this faulty document
+    if denomScalar == 0:
+        # means that should return old parameter
+        return currentParameters
     newParameters = currentParameters * numeratorArray / denomScalar # floatdivision
     return newParameters
 
