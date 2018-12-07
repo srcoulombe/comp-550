@@ -57,7 +57,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     matDim = docWordFrequencyMat.get_shape()
     lexiconSize = matDim[1]
     numDocs = matDim[0]
-    numDocsPerUpdate = 50# temporarily override
+    #numDocsPerUpdate = 50# temporarily override
     assert( numDocsPerUpdate <= numDocs )
     
     # initialize parameter and then update using fixed-point algorithm
@@ -71,7 +71,6 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
         updateDocIdxList = [( iterNum * numDocsPerUpdate + j ) % numDocs for j in range( numDocsPerUpdate) ]
         updateSubM = docWordFrequencyMat[ updateDocIdxList, : ] 
         newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha, numDocs )
-        #newAlpha = updateParameter( updateSubM, numDocs, oldAlpha, numDocs )
             
         if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
             print( "Update complete in ", iterNum, " iterations! " )
@@ -84,7 +83,23 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     
     return newAlpha        
 
+
 from scipy.special import digamma
+def diPoch( x, y ):
+    '''
+    Given two scalars or two Arrays
+    - x: a numpy array with strictly positive values
+    - y: a numpy array with non-negative values
+    returns a numpy array that is roughly:
+     - digamma( x+y ) - digamma( x )
+     - special attention is paid for y(i) = 0
+
+    '''
+    outDiPochhammer = np.zeros( x.shape[0] )
+    nonZeroIdx = np.nonzero( y )
+    outDiPochhammer[ nonZeroIdx ] = x[ nonZeroIdx ] + y[ nonZeroIdx ]
+    return outDiPochhammer
+
 def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ):
     '''
     given a CSR matrix with numDocsPerUpdate number of rows, with |currentParameters| column
@@ -101,35 +116,18 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
     lexiconSize = currentParameters.shape[0]
     newParameters = currentParameters
 
-    '''
-    # Per Column approach
-    cscMat = docWordFrequencyMat.tocsc() 
-    for wordIdx in range( lexiconSize ):
-        # wordFrequencyPerDocArray should have size (numDocsPerUpdate)
-        wordFrequencyPerDocArray = fromOneDimMatrixToArray( cscMat.getcol( wordIdx ).sum( axis = 1  ).transpose() )
-        alpha_w = currentParameters[ wordIdx ]
-        numerator = ( digamma( wordFrequencyPerDocArray + alpha_w ) - digamma( alpha_w ) ).sum()
-        denom = ( digamma( wordFrequencyPerDocArray + sumParameters ) - digamma( sumParameters )  ).sum()
-        newParameters[ wordIdx ] = numerator / float( denom )
-    '''
-
     numeratorMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
     denomMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
-    diGammaSum = digamma( sumParameters ) / numDocs * numDocsPerUpdate
-    diGammaParams = digamma( currentParameters ) / numDocs * numDocsPerUpdate
-    print( diGammaSum, diGammaParams )
     assert( numDocsPerUpdate == docWordFrequencyMat.get_shape()[0] )
+    sumParameterArray = np.repeat( sumParameters, lexiconSize ) 
     for docIdx in range( numDocsPerUpdate ):
-        # need to be careful with zeros
         # per Row approach
         docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
         # digamma( array + array ) - array 
-        numeratorMat[ docIdx, : ] = digamma( docWordFrequencyArray + currentParameters ) - diGammaParams 
+        numeratorMat[ docIdx, : ] = diPoch( currentParameters, docWordFrequencyArray )
         # digamma( array + scalar ) - scalar 
-        denomMat[ docIdx, : ] = digamma( docWordFrequencyArray + sumParameters ) - diGammaSum 
+        denomMat[ docIdx, : ] = diPoch( sumParameterArray, docWordFrequencyArray )
   
-    print( "nonzero numerators", numeratorMat[ np.nonzero( numeratorMat ) ] )
-    print( "corresponding denoms", denomMat[ np.nonzero( numeratorMat ) ] )
     # add by column
     numeratorArray = numeratorMat.sum( axis=0 )
 
@@ -137,8 +135,8 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
     print( "numeratorArray nonzero: ", numeratorArray[ np.nonzero( numeratorArray ) ] )
     print( "corresponding denomArray: ", denomArray[ np.nonzero( numeratorArray ) ] )
     newParameters = currentParameters * numeratorArray / denomArray # floatdivision
-    # having some not a number issues
-    return np.nan_to_num( newParameters ) 
+    return newParameters
+    #return np.nan_to_num( newParameters ) 
 
 def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
     '''
