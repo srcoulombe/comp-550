@@ -36,7 +36,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     one iteration of updates parameter with numDocsPerUpdate
     Assumes fixed-point algorithm (gradient ascent)
 
-    returns an array of parameters:
+    returns a numpy array of parameters:
     - size = len( docWordFrequencyArray column)
     - values are ML estimates of dirichlet alpha parameters 
     '''
@@ -66,28 +66,36 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     newAlpha = newAlpha + smallestAlpha * smoothingParam
     
     return newAlpha        
-        
+
+from scipy.special import digamma
 def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters ):
     '''
     given a CSR matrix with numDocsPerUpdate number of rows, with |currentParameters| column
-    and numDocsPErUpdate, and currentParameters
+    and numDocsPErUpdate, and currentParameters numpy Array
+
     return new dirichlet parameters by fixed-point algorithm
 
     Assumes fixed-point algorithm
 
-    returns an array of parameters:
+    returns a numpy array of parameters:
     - size = len( currentParameters )
     '''
-    return currentParameters
+    sumParameters = currentParameters.sum()
+    newParameters = currentParameters
+   
+    for i in range( numDocsPersUpdate ):
+        docWordFrequentArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( i ).sum( axis = 0  ))
+        
+    return newParameters 
 
 def trainParameterGivenTopic_multi( topicWordFrequencyArray, smoothingParam = 0 ):
     '''
     Given a numpy array where ith element corrseponds to freq of
     ith element in topic corpus, and a smoothing param
-    returns a list of parameters that are ML estimates of prob occurence
+    returns a numpy array of parameters that are ML estimates of prob occurence
     for each word
 
-    returns an array of parameters:
+    returns a numpy array of parameters:
     - size = len( topicWordFrequencyArray )
     - values are ML estimates of prob occurence for each word
     '''
@@ -103,7 +111,7 @@ def computeLogLikelihood_multi( testWordFrequencyArray, parameterArray ):
 
     Assumes Naive Bayes assumption
 
-    - testWordFrequencyArray: array of freqeucny count for word, numpy array
+    - testWordFrequencyArray: numpy array of freqeucny count for word, numpy array
     - parameterArray: numpy array of size |lexicon|, corresponding to values of multinomial
 
     returns a number
