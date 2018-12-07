@@ -63,6 +63,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     # essentially a thresholding method
     newAlpha = np.ones( lexiconSize ) * 2
     startTime = time.time()
+    actualNumIter = maxIter
     for iterNum in range( maxIter ):
         # smoothing must happen per iteration
         
@@ -72,10 +73,13 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
         newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha, numDocs )
             
         if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
-            print( "Update complete in ", iterNum, " iterations! " )
+            actualNumIter = iterNum
             break
         # otherwise, continue to update
-    print( "Took on average ", (time.time() - startTime) / maxIter, ' per iteration in updating parameter ' )
+    endTime = time.time()
+    print( "Update complete in ", actualNumIter, " iterations! " )
+    print( "Took on average ", (endTime - startTime) / actualNumIter, ' per iteration in updating parameter, total time was: ', endTime - startTime, 'sec' )
+    print( "Num documents used for training: ", actualNumIter * numDocsPerUpdate )
 
     # SMOOTHING and sanity checks
     newAlpha = smoothArray( newAlpha, smoothingParam )
@@ -391,7 +395,7 @@ if __name__ == '__main__':
     totalNumSplits = 2
     predictedL = []
     actualL = []
-    for i in range( 1, totalNumSplits ):
+    for i in range( totalNumSplits ):
         (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH, MAX_ITER, NUM_DOCS_PER_UPDATE )
         predictedL.append( predicted )
         actualL.append( actual )
