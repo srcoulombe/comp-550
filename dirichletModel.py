@@ -29,6 +29,16 @@ def fromOneDimMatrixToArray( oneDimMatrix ):
 '''
 # --------------------------
 # Functions called by *classification.py
+def printArrayInfo( numpyArray, arrayName ):
+    '''
+    Print max, min, sum of array, given the Array and its string name
+    '''
+    print( arrayName, " statistics" )
+    print( "Max of array: ", np.amax( numpyArray ) )
+    print( "Min of array: ", np.amin( numpyArray ) )
+    print( "Sum of array: ", numpyArray.sum() )
+    print( "num nonzeros: ", len( np.nonzero( numpyArray )[0] ) )
+    return
 
 def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPerUpdate=1, maxIter=1000, powerThreshold = -6 ):
     '''
@@ -62,12 +72,16 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     actualNumIter = maxIter
     for iterNum in range( maxIter ):
         # smoothing must happen per iteration
-        
+       
         oldAlpha = smoothArray( newAlpha, smoothingParam )
+        #printArrayInfo( oldAlpha, "current parameters" )
         updateDocIdxList = [( iterNum * numDocsPerUpdate + j ) % numDocs for j in range( numDocsPerUpdate) ]
         updateSubM = docWordFrequencyMat[ updateDocIdxList, : ] 
         newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha, numDocs )
             
+        #printArrayInfo( newAlpha, "updated parameters" )
+        #printArrayInfo( np.absolute( newAlpha - oldAlpha ), "Differences between param" )
+        print()
         if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
             actualNumIter = iterNum
             break
@@ -124,7 +138,9 @@ def diPoch( x, y ):
     '''
     outDiPochhammer = np.zeros( x.shape[0] )
     nonZeroIdx = np.nonzero( y )
-    outDiPochhammer[ nonZeroIdx ] = x[ nonZeroIdx ] + y[ nonZeroIdx ]
+    outDiPochhammer[ nonZeroIdx ] = digamma( x[ nonZeroIdx ] + y[ nonZeroIdx ] ) - \
+                                    digamma( x[ nonZeroIdx ] )
+
     return outDiPochhammer
 
 def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ):
