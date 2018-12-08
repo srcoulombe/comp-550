@@ -74,14 +74,10 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
         # smoothing must happen per iteration
        
         oldAlpha = smoothArray( newAlpha, smoothingParam )
-        #printArrayInfo( oldAlpha, "current parameters" )
         updateDocIdxList = [( iterNum * numDocsPerUpdate + j ) % numDocs for j in range( numDocsPerUpdate) ]
         updateSubM = docWordFrequencyMat[ updateDocIdxList, : ] 
         newAlpha = updateParameter( updateSubM, numDocsPerUpdate, oldAlpha, numDocs )
             
-        #printArrayInfo( newAlpha, "updated parameters" )
-        #printArrayInfo( np.absolute( newAlpha - oldAlpha ), "Differences between param" )
-        print()
         if( np.amax( np.absolute( newAlpha - oldAlpha ) ) < thresholdVal ):
             actualNumIter = iterNum
             break
@@ -122,7 +118,6 @@ def smoothArray( unsmoothedParamArray, smoothingParam ):
     '''
     nonZeroIdxArray = np.nonzero( unsmoothedParamArray )[0]
     smallestNonZeroVal = np.amin( unsmoothedParamArray[ nonZeroIdxArray ] )
-    assert( smallestNonZeroVal > 0 )
     return unsmoothedParamArray + smoothingParam * smallestNonZeroVal
 
 from scipy.special import digamma

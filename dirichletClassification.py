@@ -234,7 +234,9 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     # ------------------------------
     # Step 4. from test data, compute predictions of trained model
     startTime = time.time()
-    predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
+    # skip prediction for now
+    #predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
+    predicted = []
     endTime = time.time()
     trainTestStatisticsL.append( [endTime-startTime] )
 
@@ -246,7 +248,8 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
 # Main Function
 
 if __name__ == '__main__':
-    SMOOTH = 0.01
+    NUM_VOCAB = 255669
+    SMOOTH = 0.01 / NUM_VOCAB # reason for doing this the total size of alpha should increase by 1 percent after smoothing
     MAX_ITER = 1
     NUM_DOCS_PER_UPDATE = 1
 
