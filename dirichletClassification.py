@@ -235,8 +235,8 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     # Step 4. from test data, compute predictions of trained model
     startTime = time.time()
     # skip prediction for now
-    #predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
-    predicted = []
+    predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
+    #predicted = []
     endTime = time.time()
     trainTestStatisticsL.append( [endTime-startTime] )
 
