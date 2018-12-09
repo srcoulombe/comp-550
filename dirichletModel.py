@@ -139,10 +139,33 @@ def diPoch( x, y ):
     return outDiPochhammer
 
 def getNumDenom_cand( xMat, currentParameters ):
-    
+    '''
+    Same spec as other getNumDenom*
+    Given a xMat (CSR matrix) whose dimensions are numDocsPerUpdate x len(currentParameters)
+    and currentParameters
+    - xMat is the document word frequency submatrix, corresponding to topic
+    - currentParameters is a numpy array of dirichlet-multinomial parameters
+
+    return 
+    - a numpy array with | currentParameters | column
+    - and denominator scalar
+    '''
     numDocsPerUpdate, lexiconSize = xMat.get_shape()
-    numeratorMat = xMat + np.tile( currentParameters, (numDocsPerUpdate,1) )
-    return
+    #numpy matrices
+    alphaMat = np.tile( currentParameters , ( numDocsPerUpdate, 1 ) )
+    digammaAlphaMat = np.tile( digamma( currentParameters ), ( numDocsPerUpdate, 1 ) )
+    # result is a dense matrix
+    firstTermMat = xMat + alphaMat
+    numMat = digamma( firstTermMat ) - digammaAlphaMat
+    numeratorArray = fromOneDimMatrixToArray( numMat.sum( axis=0 ) )
+
+    # denom calculation
+    sumParam = currentParameters.sum()
+    denomArray = fromOneDimMatrixToArray( xMat.sum( axis=1 ).transpose() ) + sumParam
+    digammaSum = digamma( sumParam ) 
+    denomScalar = digamma( denomArray ).sum() - numDocsPerUpdate * digammaSum
+    return ( numeratorArray, denomScalar )
+
 def getNumDenom( xMat, currentParameters ):
     '''
     Given a xMat (CSR matrix) whose dimensions are numDocsPerUpdate x len(currentParameters)
@@ -184,7 +207,8 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
     lexiconSize = currentParameters.shape[0]
     newParameters = currentParameters
 
-    numeratorArray, denomScalar = getNumDenom( docWordFrequencyMat, currentParameters )
+    numeratorArray, denomScalar = getNumDenom_cand( docWordFrequencyMat, currentParameters )
+    #numeratorArray, denomScalar = getNumDenom( docWordFrequencyMat, currentParameters )
     # BUG: when using 1 doc per update, and encountering a BUGGY file with empty word count,
     #      updated parameters are NaN
     # FIX: simply ignore update based on this faulty document
