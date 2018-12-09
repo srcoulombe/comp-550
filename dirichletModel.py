@@ -138,6 +138,36 @@ def diPoch( x, y ):
 
     return outDiPochhammer
 
+def getNumDenom_cand( xMat, currentParameters ):
+    
+    numDocsPerUpdate, lexiconSize = xMat.get_shape()
+    numeratorMat = xMat + np.tile( currentParameters, (numDocsPerUpdate,1) )
+    return
+def getNumDenom( xMat, currentParameters ):
+    '''
+    Given a xMat (CSR matrix) whose dimensions are numDocsPerUpdate x len(currentParameters)
+    and currentParameters
+    - xMat is the document word frequency submatrix, corresponding to topic
+    - currentParameters is a numpy array of dirichlet-multinomial parameters
+
+    return 
+    - a numpy array with | currentParameters | column
+    - and denominator scalar
+    '''
+    numDocsPerUpdate, lexiconSize = xMat.get_shape()
+    numeratorMat = np.zeros( (numDocsPerUpdate,lexiconSize) )
+    denomArray = np.zeros( numDocsPerUpdate  )
+    sumParameters = currentParameters.sum()
+    for docIdx in range( numDocsPerUpdate ):
+        docWordFrequencyArray = fromOneDimMatrixToArray( xMat.getrow( docIdx ).sum( axis=0 ) )
+        allZeroDocument = np.nonzero( docWordFrequencyArray )[0].shape[0] == 0
+        numeratorMat[ docIdx, : ] = diPoch( currentParameters, docWordFrequencyArray )
+        denomArray[ docIdx ] = diPoch( np.array( [sumParameters] ), np.array( [docWordFrequencyArray.sum()] ) )
+    # add by column
+    numeratorArray = numeratorMat.sum( axis=0 )
+    denomScalar = denomArray.sum() #denominator is scalar with respect to word
+    return (numeratorArray, denomScalar)
+
 def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ):
     '''
     given a CSR matrix with numDocsPerUpdate number of rows, with |currentParameters| column
@@ -154,18 +184,7 @@ def updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, n
     lexiconSize = currentParameters.shape[0]
     newParameters = currentParameters
 
-    numeratorMat = np.zeros( ( numDocsPerUpdate, lexiconSize ) )
-    denomArray = np.zeros( numDocsPerUpdate  )
-    assert( numDocsPerUpdate == docWordFrequencyMat.get_shape()[0] )
-    for docIdx in range( numDocsPerUpdate ):
-        docWordFrequencyArray = fromOneDimMatrixToArray( docWordFrequencyMat.getrow( docIdx ).sum( axis=0 ) )
-        allZeroDocument = np.nonzero( docWordFrequencyArray )[0].shape[0] == 0
-        numeratorMat[ docIdx, : ] = diPoch( currentParameters, docWordFrequencyArray )
-        denomArray[ docIdx ] = diPoch( np.array( [sumParameters] ), np.array( [docWordFrequencyArray.sum()] ) )
-    # add by column
-    numeratorArray = numeratorMat.sum( axis=0 )
-    denomScalar = denomArray.sum() #denominator is scalar with respect to word
-
+    numeratorArray, denomScalar = getNumDenom( docWordFrequencyMat, currentParameters )
     # BUG: when using 1 doc per update, and encountering a BUGGY file with empty word count,
     #      updated parameters are NaN
     # FIX: simply ignore update based on this faulty document
