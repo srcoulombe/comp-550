@@ -63,7 +63,7 @@ def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPe
     lexiconSize = matDim[1]
     numDocs = matDim[0]
     #numDocsPerUpdate = numDocs# temporarily override
-    assert( numDocsPerUpdate <= numDocs )
+    #assert( numDocsPerUpdate <= numDocs )
     
     # initialize parameter and then update using fixed-point algorithm
     # essentially a thresholding method
