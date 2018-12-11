@@ -1,4 +1,9 @@
-training_testing_and_results_pickles/industry_sector/cv[1-9]/*
+training_testing_and_results_pickles/industry_sector/cv[0-9]/*
 backupDataDump/*
 20_newsgroups/*
 sector/*
+unused-files-and-pickles/*
+.ipynb_checkpoints/
+.DS_Store
+__pycache__/
+

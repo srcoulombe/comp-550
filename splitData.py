@@ -6,8 +6,7 @@ import os
 
 def getFilename( splitNumber, isTraining, isLabel,
                  dataDirName = 'training_testing_and_results_pickles',
-                 testCluster = '20_newsgroups',
-                 alternateClusterName = 'twenty_newsgroups',
+                 testCluster = 'twenty_newsgroups',
                  extensionName = 'pickle'
                  ):
     '''
@@ -19,11 +18,13 @@ def getFilename( splitNumber, isTraining, isLabel,
 
     SIDE effect: if directory doesn't exist, directory will be created
 
-    returns a string with prefixes attached
+    returns a string with prefixes attace
     '''
+    # recent git update renamed directories for consistent naming scheme
+    alternateClusterName = testCluster
     trainingTestingStr = 'training' if isTraining else 'testing'
     matrixLabelStr = '_labels_vector_' if isLabel else '_'
-    fName = alternateClusterName + '_' + trainingTestingStr + '_matrix' + \
+    fName = alternateClusterName + '_' + trainingTestingStr +  '_matrix' + \
             matrixLabelStr + 'cv#' + str( splitNumber ) + '.' + extensionName
     prefix = './'+ dataDirName + '/' + testCluster + '/cv' + str( splitNumber ) + '/'
     os.makedirs( prefix, exist_ok=True )
