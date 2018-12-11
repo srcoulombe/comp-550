@@ -68,7 +68,7 @@ def predict( testingMat, parameterArrayD, topicList, evalScoreF):
 
 
 # --------------------------
-def plotFigure( confusionMat, topicIdxToStrFName ):
+def plotFigure( confusionMat, topicIdxToStrFName, isTwentyNewsgroup ):
     '''
     Plots a heatmap confusion matrxi
 
@@ -77,9 +77,13 @@ def plotFigure( confusionMat, topicIdxToStrFName ):
     fig = plt.figure()
     ax = fig.subplots( nrows=1, ncols=1 )
 
-    topicIdxToTopicD = mapFromTopicIdxToTopic( topicIdxToStrFName )
-    topicList = list( topicIdxToTopicD.keys() )
-    topics = [ topicIdxToTopicD[i] for i in topicList ]
+    if isTwentyNewsgroup:
+        topicIdxToTopicD = mapFromTopicIdxToTopic( topicIdxToStrFName )
+        topicList = list( topicIdxToTopicD.keys() )
+        topics = [ topicIdxToTopicD[i] for i in topicList ]
+    else:
+        topics = range( 104 ) # HARDCODED for industry_sector
+
     # heatmap
     heatmap = ax.matshow( confusionMat, cmap="Reds", aspect="equal" )
     ax.set_xticks( np.arange( len( confusionMat ) ) )
@@ -134,7 +138,7 @@ def mapFromTopicIdxToTopic( topicFName ):
 
 # ------------------
 # Per Split computation
-def splitResults( splitNumber, smoothingParam=0.01 ):
+def splitResults( splitNumber, smoothingParam=0.01, testCluster='twenty_newsgroups' ):
     '''
     Given a training/testing data split number, and smoothing param
     returns 3 things
@@ -147,10 +151,10 @@ def splitResults( splitNumber, smoothingParam=0.01 ):
     # --------------------------------
     # Step 1. Read and load training/test data split
     #splitNumber = 0
-    trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False ) 
-    trainingLabelF = getFilename( splitNumber, isTraining=True, isLabel=True ) 
-    testingMatF = getFilename( splitNumber, isTraining=False, isLabel=False ) 
-    testingLabelF = getFilename( splitNumber, isTraining=False, isLabel=True ) 
+    trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster ) 
+    trainingLabelF = getFilename( splitNumber, isTraining=True, isLabel=True, testCluster=testCluster ) 
+    testingMatF = getFilename( splitNumber, isTraining=False, isLabel=False, testCluster=testCluster ) 
+    testingLabelF = getFilename( splitNumber, isTraining=False, isLabel=True, testCluster=testCluster ) 
 
     with open( trainingMatF, 'rb' ) as f:
         trainingMat = csr_matrix( pickle.load( f ) )
@@ -190,7 +194,9 @@ def splitResults( splitNumber, smoothingParam=0.01 ):
     predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
     endTime = time.time()
     print( "Elapsed Time for predicting : ", endTime-startTime )
-    actual = testingLabel
+
+    isIndustrySector = testCluster == 'industry_sector' 
+    actual = [i-100 for i in testingLabel] if isIndustrySector else testingLabel
 
     return mlEstimatesD, predicted, actual
 
@@ -210,15 +216,15 @@ if __name__ == '__main__':
 
     To simply plot existing confusion matrix, skip Step 4,5
     '''
-    #splitNumber = int( sys.argv[1] )
-    #isDump = sys.argv[2] == 'dump'
+    totalNumSplits = int( sys.argv[1] )
+    TEST_CLUSTER = sys.argv[2]
 
     # Steps 1-4 condensed into splitResults function
-    totalNumSplits = 10
+    #totalNumSplits = 10
     predictedL = []
     actualL = []
     for i in range( totalNumSplits ):
-        (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH )
+        (mlEstimatesD, predicted, actual) = splitResults( i, SMOOTH, TEST_CLUSTER )
         predictedL.append( predicted )
         actualL.append( actual )
     # mlEstimatesD.. is not needed now, but will be needed
@@ -228,12 +234,12 @@ if __name__ == '__main__':
     # Step 5. Compute confusion matrix
 
     # For Confusion Matrix Writing
-    confusionDataDir = 'confusionMatrix'
+    confusionDataDir = 'confusionMatrix-multi'
     confusionMatrixFList = [] # list of strings
     confusionMatrixL = [] # list of confusion matrices for CV
     for i in range( totalNumSplits ):
         # files to write out to
-        confusionMatrixF = getFilename( i, isTraining=False, isLabel=False, dataDirName=confusionDataDir, alternateClusterName='' )
+        confusionMatrixF = getFilename( i, isTraining=False, isLabel=False, dataDirName=confusionDataDir, testCluster=TEST_CLUSTER )
         confusionMatrixFList.append( confusionMatrixF )
 
         # actual confusion matrices
@@ -248,6 +254,7 @@ if __name__ == '__main__':
     # creates file if it hasn't existed before
     for i in range( totalNumSplits ):
         confusionMatrix = confusionMatrixL[ i ]
+        confusionMatrixF = confusionMatrixFList[ i ]
         try: 
             with open( confusionMatrixF, 'xb' ) as f:
                 pickle.dump( confusionMatrix, f, protocol=pickle.HIGHEST_PROTOCOL )
@@ -265,6 +272,7 @@ if __name__ == '__main__':
                 avgConfusionMatrix[ rowIdx, colIdx ] += float( entry / totalNumSplits )
 
     topicDFName = './data_pickles/twenty_newsgroup_dict_of_dicts_of_topic_and_topical_file_name_as_keys_and_file_valid_lines_as_values.pickle'
-    plotFigure( avgConfusionMatrix, topicDFName )
+    isTwentyNewsgroup = TEST_CLUSTER == 'twenty_newsgroups'
+    plotFigure( avgConfusionMatrix, topicDFName, isTwentyNewsgroup )
     reportPrecision( confusionMatrixL )
 
