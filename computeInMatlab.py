@@ -27,21 +27,20 @@ if __name__ == '__main__':
         testingLabel = pickle.load( f )
 
     trainingLabelF = getFilename( splitNumber, isTraining=True, isLabel=True, testCluster=testCluster, extensionName='mat' )
-    trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat' )
     testingMatF = getFilename( splitNumber, isTraining=False, isLabel=False ,testCluster= testCluster, extensionName='mat' )
+    trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat' )
     testingLabelF = getFilename( splitNumber, isTraining=False, isLabel=True ,testCluster= testCluster, extensionName='mat' )
     
     
     (topicList, partitionedTrainingD) = partitionDataPerTopic( trainingLabel, trainingMat )
     newPartitionedTrainingD = {'arr' + str(k):v for k,v in partitionedTrainingD.items() }
-    scipy.io.savemat( trainingMatF, mdict=newPartitionedTrainingD )
 
+    scipy.io.savemat( trainingMatF, mdict=newPartitionedTrainingD )
     # after some time
+
     trainingParamF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat', isUsingMatlab=True )
-    print( trainingParamF )
     mlEstimatesMat = scipy.io.loadmat( trainingParamF )['alphaLearntM'] 
     mlEstimatesMat = np.matrix( mlEstimatesMat ) 
     mlEstimatesD = {}
     for topic in topicList:
         mlEstimatesD[topic] = np.array( mlEstimatesMat[ topic ] )
-    print( mlEstimatesD )

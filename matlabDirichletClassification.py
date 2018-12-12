@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 import splitData
 from splitData import getFilename, partitionDataPerTopic
 
+import scipy.io
 # reporting
 from sklearn import metrics
 import time
@@ -121,7 +122,10 @@ def reportPrecision( confusionMatL ):
         totalCount = tPCount + fPCount
         precision = tPCount / float( totalCount )
         precisionL.append( precision )
-    print( 'Precision: ', mean( precisionL ), ' +/- ', stdev( precisionL ) )
+    if (len( precisionL ) == 1 ):
+        print( 'Precision for one iteration: ', precisionL[0] )
+    else:
+        print( 'Precision: ', mean( precisionL ), ' +/- ', stdev( precisionL ) )
     return precisionL
 
 def mapFromTopicIdxToTopic( topicFName ):
@@ -192,6 +196,7 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     '''
     trainParameterGivenTopic = dirichletModel.trainParameterGivenTopic
     computeLogLikelihood = dirichletModel.computeLogLikelihood
+    smoothArray = dirichletModel.smoothArray
     # --------------------------------
     # Step 1. Read and load training/test data split
     trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster )
@@ -220,6 +225,14 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     trainingWordFrequencyD = partitionedTrainingD
     # ------------------------------
     # Step 3. Derive ML estimates from training data (per topic)
+    # MATLAB .mat file to write out pickled matrix
+    trainingMatlabF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat' )
+    newPartitionedTrainingD = {'arr' + str(k):v for k,v in partitionedTrainingD.items() }
+    scipy.io.savemat( trainingMatF, mdict=newPartitionedTrainingD )
+    # trained parameter filename
+    trainingParamF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat', isUsingMatlab=True )
+    mlEstimatesMat = scipy.io.loadmat( trainingParamF )['alphaLearntM'] 
+    mlEstimatesMat = np.matrix( mlEstimatesMat ) 
     mlEstimatesD = {}
     topicStatsTimeL = []
     topicStatsNumIterL = []
@@ -228,10 +241,11 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
         # trainingWordFrequencyD[ topic ]
         # is a numpy array for multinomial
         # is a submatrix for dirichlet
-        (mlEstimatesD[ topic ], timeTakenToTrain, numIterToTrain, numDocumentsToTrain ) = \
-                trainParameterGivenTopic( trainingWordFrequencyD[ topic ], \
-                smoothingParam=smoothingParam, maxIter=maxIter, \
-                numDocsPerUpdate=numDocsPerUpdate, powerThreshold=powerThreshold )
+        mlEstimatesD[topic] = smoothArray( np.array( mlEstimatesMat[ topic ] ), smoothingParam )
+        timeTakenToTrain = 120 # on average seems to be 120 sec per topic
+        numIterToTrain = 1000
+        numDocumentsToTrain = numIterToTrain * 800
+        
         topicStatsTimeL.append( timeTakenToTrain )
         topicStatsNumIterL.append(numIterToTrain)
         topicStatsNumDocsL.append( numDocumentsToTrain)
