@@ -7,3 +7,4 @@ unused-files-and-pickles/*
 .DS_Store
 __pycache__/
 matlab/*
+*.mat*

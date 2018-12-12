@@ -230,10 +230,15 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     newPartitionedTrainingD = {'arr' + str(k):v for k,v in partitionedTrainingD.items() }
     scipy.io.savemat( trainingMatF, mdict=newPartitionedTrainingD )
     # trained parameter filename
+    '''
     trainingParamF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat', isUsingMatlab=True )
     mlEstimatesMat = scipy.io.loadmat( trainingParamF )['alphaLearntM'] 
     mlEstimatesMat = np.matrix( mlEstimatesMat ) 
     mlEstimatesD = {}
+    '''
+    trainingParamF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='pickle', isUsingMatlab=True )
+    with open( trainingParamF, 'rb' ) as f:
+        mlEstimatesD = pickle.load( trainingParamF )
     topicStatsTimeL = []
     topicStatsNumIterL = []
     topicStatsNumDocsL = []
@@ -241,7 +246,7 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
         # trainingWordFrequencyD[ topic ]
         # is a numpy array for multinomial
         # is a submatrix for dirichlet
-        mlEstimatesD[topic] = smoothArray( np.array( mlEstimatesMat[ topic ] ), smoothingParam )
+        #mlEstimatesD[topic] = smoothArray( np.array( mlEstimatesMat[ topic ] ), smoothingParam )
         timeTakenToTrain = 120 # on average seems to be 120 sec per topic
         numIterToTrain = 1000
         numDocumentsToTrain = numIterToTrain * 800
