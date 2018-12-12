@@ -7,14 +7,16 @@ import os
 def getFilename( splitNumber, isTraining, isLabel,
                  dataDirName = 'training_testing_and_results_pickles',
                  testCluster = 'twenty_newsgroups',
-                 extensionName = 'pickle'
+                 extensionName = 'pickle',
+                 isUsingMatlab = False
                  ):
     '''
     returns filename to load from already test-train-split data
-    3 mandatory options:
+    4 mandatory options:
     - splitNumber: integer
     - isTraining: True if file for training
     - isLabel: True if file for getting label associated to matrix
+    - isUsingMAtlabl: True if used to import learnt parameters from matlab
 
     SIDE effect: if directory doesn't exist, directory will be created
 
@@ -24,7 +26,8 @@ def getFilename( splitNumber, isTraining, isLabel,
     alternateClusterName = testCluster
     trainingTestingStr = 'training' if isTraining else 'testing'
     matrixLabelStr = '_labels_vector_' if isLabel else '_'
-    fName = alternateClusterName + '_' + trainingTestingStr +  '_matrix' + \
+    trainingTestingMatrixStr = 'trained_param' if isUsingMatlab else trainingTestingStr + '_matrix' 
+    fName = alternateClusterName + '_' + trainingTestingMatrixStr + \
             matrixLabelStr + 'cv#' + str( splitNumber ) + '.' + extensionName
     prefix = './'+ dataDirName + '/' + testCluster + '/cv' + str( splitNumber ) + '/'
     os.makedirs( prefix, exist_ok=True )

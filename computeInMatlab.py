@@ -2,7 +2,7 @@ from splitData import getFilename, partitionDataPerTopic
 import scipy.io, pickle
 import sys
 from scipy.sparse import csr_matrix
-
+import numpy as np
 
 if __name__ == '__main__':
     testCluster = sys.argv[1]
@@ -26,8 +26,8 @@ if __name__ == '__main__':
     with open( testingLabelF, 'rb' ) as f:
         testingLabel = pickle.load( f )
 
-    trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat' )
     trainingLabelF = getFilename( splitNumber, isTraining=True, isLabel=True, testCluster=testCluster, extensionName='mat' )
+    trainingMatF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat' )
     testingMatF = getFilename( splitNumber, isTraining=False, isLabel=False ,testCluster= testCluster, extensionName='mat' )
     testingLabelF = getFilename( splitNumber, isTraining=False, isLabel=True ,testCluster= testCluster, extensionName='mat' )
     
@@ -36,7 +36,12 @@ if __name__ == '__main__':
     newPartitionedTrainingD = {'arr' + str(k):v for k,v in partitionedTrainingD.items() }
     scipy.io.savemat( trainingMatF, mdict=newPartitionedTrainingD )
 
+    # after some time
+    trainingParamF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='mat', isUsingMatlab=True )
+    print( trainingParamF )
+    mlEstimatesMat = scipy.io.loadmat( trainingParamF )['alphaLearntM'] 
+    mlEstimatesMat = np.matrix( mlEstimatesMat ) 
     mlEstimatesD = {}
-    
-    #for topic in topicList:
-    #    mlEstimatesD[ topic ] =
+    for topic in topicList:
+        mlEstimatesD[topic] = np.array( mlEstimatesMat[ topic ] )
+    print( mlEstimatesD )
