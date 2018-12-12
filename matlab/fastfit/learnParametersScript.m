@@ -1,5 +1,5 @@
 % script to learn alphas
-totalSplitNum = 2;
+totalSplitNum = 1;
 
 testCluster = 'twenty_newsgroups';
 isTwentyNewsgroup = strcmp( testCluster, 'twenty_newsgroups' );
@@ -25,6 +25,6 @@ for splitIdx = 1:totalSplitNum
         trainingDataM = trainingData.( topicDataMFns{ topicIdx } );
         alphaLearntM( topicIdx, : ) = polya_fit_simple( trainingDataM, alphaInit );
     end
-    save( learntFName, alphaLearntM );
+    save( learntFName, 'alphaLearntM' );
         
 end

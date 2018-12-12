@@ -85,7 +85,9 @@ def plotFigure( confusionMat, topicIdxToStrFName, isTwentyNewsgroup ):
     # is a list of topics (either a list of string OR a list of numbers)
     if isTwentyNewsgroup:
         topicIdxToTopicD = mapFromTopicIdxToTopic( topicIdxToStrFName )
-        topicList = list( topicIdxToTopicD.keys() )
+        #topicList = list( topicIdxToTopicD.keys() )
+        topicList = [i for i in topicIdxToTopicD.keys() if int(i) != 16 ]
+        print( topicList )
         topics = [ topicIdxToTopicD[i] for i in topicList ]
     else:
         topicList = range( 104 ) # HARDCODED, for industry sector
@@ -238,15 +240,20 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     '''
     trainingParamF = getFilename( splitNumber, isTraining=True, isLabel=False, testCluster=testCluster, extensionName='pickle', isUsingMatlab=True )
     with open( trainingParamF, 'rb' ) as f:
-        mlEstimatesD = pickle.load( trainingParamF )
+        mlEstimatesD = pickle.load( f )
     topicStatsTimeL = []
     topicStatsNumIterL = []
     topicStatsNumDocsL = []
+    
+    # modify topicList and testingMat to exclude m
+    topicList = [ i for i in topicList if int(i) != 16 ]
+
     for topic in topicList:
         # trainingWordFrequencyD[ topic ]
         # is a numpy array for multinomial
         # is a submatrix for dirichlet
         #mlEstimatesD[topic] = smoothArray( np.array( mlEstimatesMat[ topic ] ), smoothingParam )
+        mlEstimatesD[ topic ] = smoothArray( mlEstimatesD[ topic ], smoothingParam )
         timeTakenToTrain = 120 # on average seems to be 120 sec per topic
         numIterToTrain = 1000
         numDocumentsToTrain = numIterToTrain * 800
@@ -265,14 +272,23 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
     # Step 4. from test data, compute predictions of trained model
     startTime = time.time()
     # skip prediction for now
+
+    # from testingLabel, get firstIdx
+    idxToRemove = [ idx for idx,ele in enumerate( testingLabel ) if int(ele) == 16 ]
+    mask = np.ones( testingMat.shape[0], dtype=bool )
+    mask[ idxToRemove ] = False
+    testingMat = testingMat[ mask ]
+
     predicted = predict( testingMat, mlEstimatesD, topicList, computeLogLikelihood )
     #predicted = [1 for i in range(  testingMat.get_shape()[0] ) ]
     endTime = time.time()
     trainTestStatisticsL.append( [endTime-startTime] )
 
-    isIndustrySector = testCluster == 'industry_sector' 
+    isIndustrySector = testCluster == 'industry_sector'
+    # matlab version was not reporting topic 17 (idx16) correctly
+    testingLabel = [ i for i in testingLabel if i != 16 ]
     actual = ( [ i - 100  for i in testingLabel ] ) if isIndustrySector else testingLabel
-    print( actual )
+    #print( actual )
     return mlEstimatesD, predicted, actual, trainTestStatisticsL
 
 
@@ -281,7 +297,8 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
 
 if __name__ == '__main__':
     NUM_VOCAB = 255669
-    SMOOTH = 0.01 / NUM_VOCAB # reason for doing this the total size of alpha should increase by 1 percent after smoothing
+    #SMOOTH = 0.01 / NUM_VOCAB # reason for doing this the total size of alpha should increase by 1 percent after smoothing
+    SMOOTH = 0.75
     MAX_ITER = 1
     NUM_DOCS_PER_UPDATE = 1
 
@@ -326,6 +343,7 @@ if __name__ == '__main__':
         # actual confusion matrices
         actual = actualL[ i ]
         predicted = predictedL[ i ]
+        assert( len( set( actual ) ) == 19 )
         confusion_matrix_unnorm = metrics.confusion_matrix( actual, predicted )
         confusionMatrix = confusion_matrix_unnorm.astype( 'float' ) /\
                         confusion_matrix_unnorm.sum( axis=1 )[:, np.newaxis]
