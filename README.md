@@ -1,6 +1,7 @@
 # Using Mini-Batches for Dirichlet Compound Multinomial Language Model
 
-Steps to replicate results for the twenty_newsgroups dataset.*
+Steps to replicate results for the twenty_newsgroups dataset.
+
 DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have not been thoroughly tested for industry_sector dataset.
 
 ## 1. Run jupyter-notebook for data pre-processing and 80-20 cross-validation splits
@@ -10,35 +11,36 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 
 ## 2. Running topic classification based on multinomial language model 
  - one using sklearn: *.py
- - barebones classification script: multinomialClassification.py <numTrials> <TEST_CLUSTER>
-   o numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
-   o TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
-   o output of running the script:
-	* time taken to run predictions are reported
-	* confusion matrix for classification
-	* precision result for classification
+ - barebones classification script: multinomialClassification.py numTrials TEST_CLUSTER
+   * numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
+   * TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
+   * output of running the script:
+	1 time taken to run predictions are reported
+	1 confusion matrix for classification
+	1 precision result for classification
 
 ## 3. Running topic classification based on dirichlet compound multinomial language model
-### Python method: dirichletClassification.py <maxIter> <numDocsPerIter> <numTrials> <thresholdPower> <TEST_CLUSTER>
-   o maxIter is a positive integer
-   o numDocsPerIter: specifies whether to use mini-batch (1~798) or GD (799) for twenty_newsgroups
-   o numTrials: number of CV trials for classification
-   o thresholdPower: is a number specifying training threshold for parameter approximation. Training Threshold will be e-(thresholdPower)
-   o TEST_CLUSTER: same as in multinomialClassification.py. Either "twenty_newsgroups" or "industry_sector"
-   o output of running the script:
-	* various prints on training time, number of documents used per topic
-	* confusion matrix for classification
-	* precision result for classification
+### Python method: 
+   * dirichletClassification.py maxIter numDocsPerIter numTrials thresholdPower TEST_CLUSTER
+   * maxIter is a positive integer
+   * numDocsPerIter: specifies whether to use mini-batch (1~798) or GD (799) for twenty_newsgroups
+   * numTrials: number of CV trials for classification
+   * thresholdPower: is a number specifying training threshold for parameter approximation. Training Threshold will be e-(thresholdPower)
+   * TEST_CLUSTER: same as in multinomialClassification.py. Either "twenty_newsgroups" or "industry_sector"
+   * output of running the script:
+	1 various prints on training time, number of documents used per topic
+	1 confusion matrix for classification
+	1 precision result for classification
  
 ### Matlab-based method: We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
 
  As it is now, 3 things have to be done manualy to offload heavy-computation (trainParameter) to matlab. 
-    - transfer python pickle cross-validation splits to .mat file
-      e.g.) computeInMatlab.py <TEST_CLUSTER> <cvTrialNumber>
-            generates training data, ending in *training_matrix_cv#<cvTrialNumber>.mat
-    - open Matlab, and run learnParametersScript.m
-      o generates a pickle file called *trained_param_cv#<cvTrialNumber>.pickle
+    * transfer python pickle cross-validation splits to .mat file
+      e.g.) computeInMatlab.py TEST_CLUSTER cvTrialNumber
+            generates training data, ending in *training_matrix_cv#cvTrialNumber.mat
+    * open Matlab, and run learnParametersScript.m
+      o generates a pickle file called *trained_param_cv#cvTrialNumber.pickle
       o for multiple CV splits, computeInMatlab.py and learntParameters.Script.m need to be manually modified
-    - run matlabDirichletClassification.py <numTrials> <smooth> <TEST_CLUSTER>
+    * run matlabDirichletClassification.py numTrials smooth TEST_CLUSTER
       o different from dirichletClassification.py in only offloading parameter training 
 
