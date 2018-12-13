@@ -13,7 +13,7 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 ## 2. Running topic classification based on multinomial language model 
 ### Sci-kit Learn Multinomial NB: 
  - assumes ./notebooks/data-extraction-and-cleaning.ipynb has been run or that the ./data_pickles directory already contains the three "intermediate" pickled Python dictionaries
- - ./multinomial_twenty_newsgroups.py can be run as-is from the command line
+ - ./train_test_split_and_multinomial_twenty_newsgroups.py can be run as-is from the command line
  - this is the implementation reported in the report
  
 ### Multinomial NB from scratch:
