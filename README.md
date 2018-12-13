@@ -29,6 +29,7 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 ## 3. Running topic classification based on dirichlet compound multinomial language model
 
 DISCLAIMER: note that smoothing schemes between Python method and Matlab method are different.
+
 For the Python classifier, alpha parameters are smoothed after **every** update iteration of the FPI method; for the Matlab classifier, alpha parameters are smoothed **once** after the FPI method has finished.
  
 ### Python method: 
