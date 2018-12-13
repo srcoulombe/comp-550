@@ -298,7 +298,7 @@ def splitResults( splitNumber, smoothingParam=0.01, maxIter=1000, numDocsPerUpda
 if __name__ == '__main__':
     NUM_VOCAB = 255669
     #SMOOTH = 0.01 / NUM_VOCAB # reason for doing this the total size of alpha should increase by 1 percent after smoothing
-    SMOOTH = 0.75
+    SMOOTH = 0.85
     MAX_ITER = 1
     NUM_DOCS_PER_UPDATE = 1
 
