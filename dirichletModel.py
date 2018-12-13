@@ -22,24 +22,15 @@ def fromOneDimMatrixToArray( oneDimMatrix ):
  2. computeLogLikelihood( testWordFrequencyArray, parameterArray ): returns logLikelihood value of given document, based on parameterArray
 
  Helper Functions
- 1. smoothArray( unsmoothedParamArray, smoothingParam ): returns a smoothed numpy array
- 2. diPoch( x,y ): computes digamma( sum of args ) - digamma( x ), special care is taken when y[i] == 0
- 3. updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ): function called iteratively that returns a numpy array of new paramters
- 4. 
+ 1. printArrayInfo( numpyArray, arrayName ): prints out max, min, and sum of array
+ 2. smoothArray( unsmoothedParamArray, smoothingParam ): returns a smoothed numpy array
+ 3. diPoch( x,y ): computes digamma( sum of args ) - digamma( x ), special care is taken when y[i] == 0
+ 4. getNumDenom( xMat, currentParameters ): returns numerator array, denominator scalar for DCM model parameter approximation
+ 5. getNumDenom_baseline( xMat, currentParameters ): same as 3, slower than 3.
+ 6. updateParameter( docWordFrequencyMat, numDocsPerUpdate, currentParameters, numDocs ): function called iteratively that returns a numpy array of new paramters
 '''
 # --------------------------
 # Functions called by *classification.py
-def printArrayInfo( numpyArray, arrayName ):
-    '''
-    Print max, min, sum of array, given the Array and its string name
-    '''
-    print( arrayName, " statistics" )
-    print( "Max of array: ", np.amax( numpyArray ) )
-    print( "Min of array: ", np.amin( numpyArray ) )
-    print( "Sum of array: ", numpyArray.sum() )
-    print( "num nonzeros: ", len( np.nonzero( numpyArray )[0] ) )
-    return
-
 def trainParameterGivenTopic( docWordFrequencyMat, smoothingParam = 0, numDocsPerUpdate=1, maxIter=1000, powerThreshold = -6 ):
     '''
     Given a CSR matrix whose ith row corrseponds to an array of freq of
@@ -108,6 +99,18 @@ def computeLogLikelihood( testWordFrequencyArray, parameterArray ):
 
 # --------------------------
 # Helper Functions
+def printArrayInfo( numpyArray, arrayName ):
+    '''
+    Print max, min, sum of array, given the Array and its string name
+    '''
+    print( arrayName, " statistics" )
+    print( "Max of array: ", np.amax( numpyArray ) )
+    print( "Min of array: ", np.amin( numpyArray ) )
+    print( "Sum of array: ", numpyArray.sum() )
+    print( "num nonzeros: ", len( np.nonzero( numpyArray )[0] ) )
+    return
+
+
 def smoothArray( unsmoothedParamArray, smoothingParam ):
     '''
     given a numpy array of non-negative array, and a smoothingParam

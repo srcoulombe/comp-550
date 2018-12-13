@@ -302,11 +302,10 @@ if __name__ == '__main__':
     MAX_ITER = 1
     NUM_DOCS_PER_UPDATE = 1
 
-    MAX_ITER = int( sys.argv[ 1 ] )
-    NUM_DOCS_PER_UPDATE = int( sys.argv[ 2 ] )
-    totalNumSplits = int(sys.argv[3])
-    POWER_THRESHOLD = -int(sys.argv[4])
-    TEST_CLUSTER = sys.argv[5]
+    totalNumSplits = int(sys.argv[1])
+    POWER_THRESHOLD = -6
+    SMOOTH = float(sys.argv[2])
+    TEST_CLUSTER = sys.argv[3]
     isTwentyNewsgroup = TEST_CLUSTER == 'twenty_newsgroups'
     # threshold for stopping FP will be if max( abs( alpha_diff ) ) <= 10**(POWER_THRESHOLD)
     '''

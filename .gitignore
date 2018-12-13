@@ -8,3 +8,7 @@ unused-files-and-pickles/*
 __pycache__/
 matlab/*
 *.mat*
+*.svg
+*.png
+pickledData/
+*.JPG
