@@ -4,17 +4,18 @@ Steps to replicate results for the twenty_newsgroups dataset.
 
 DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have not been thoroughly tested for industry_sector dataset.
 
-## 1. Run jupyter-notebook for data pre-processing and 80-20 cross-validation splits
- - creates pickles of training data, training labels, testing data and testing labels
-    * e.g.) path to cross-validation 0 trial for twenty_newsgroups: 
-          <dataDir>/twenty_newsgroups/cv0/twenty_newsgroups_*.pickle
+## 1. Run ./notebooks/data-extraction-and-cleaning.ipynb for data cleaning and extraction
+ - creates three "intermediate" Python dictionary pickles that will be usd to split the corpus into training/testing matrices and label lists
+ - the three pickled files should be moved into ./data_pickles
+    * e.g.) ./data_pickles/twenty_newsgroups_corpus_wide_tokens_and_frequencies_(lexicon).pickle
+ - see ./data_pickles/pickle_legend.txt for details on the three intermediate Python dictionary pickles
 
 ## 2. Running topic classification based on multinomial language model 
 ### Sci-kit Learn Multinomial NB: 
- - *.py
+ - assumes ./notebooks/data-extraction-and-cleaning.ipynb has been run or that the ./data_pickles directory already contains the three "intermediate" pickled Python dictionaries
+ - ./multinomial_twenty_newsgroups.py can be run as-is from the command line
  - this is the implementation reported in the report
  
-
 ### Multinomial NB from scratch:
  - this is NOT reported in the report; multinomialClassification.py shares most of code with dirichletClassification.py 
  - multinomialClassification.py numTrials TEST_CLUSTER
@@ -54,3 +55,9 @@ The _**matlab/**_ directory is a combination of [Minka's fastfit](https://github
  - run matlabDirichletClassification.py numTrials smooth TEST_CLUSTER
     * different from dirichletClassification.py in only offloading parameter training 
 
+### Generating figures
+#### Confusion matrices
+ - ./multinomial_twenty_newsgroups.py, ./dirichletClassification.py, and ./matlabDirichletClassification.py all have the functions needed to plot confusion matrices and averaged confusion matrices
+ 
+ #### Bubble plot
+ - ./bubble_plotter.py can be run from the command line to generate an .html version of the bubble plot in the report
