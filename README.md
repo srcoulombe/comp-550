@@ -62,6 +62,8 @@ We were interested to offload heavy computation to [Minka's fastfit matlab imple
 
 To run the Matlab-based method, all you need is a working version of Matlab (tested on Matlab R2016b, MacOS), and Python.
 The _**matlab/**_ directory is a combination of [Minka's fastfit](https://github.com/tminka/fastfit) and dependencies from [Minka's lightspeed](https://github.com/tminka/lightspeed).
+The dependencies from lightspeed are {cols,col_sum,rows,row_sum,digamma,trigamma}.m
+
 
  As it is now, 3 things have to be done manualy to offload heavy-computation (trainParameter) to matlab. 
  - transfer python pickle cross-validation splits to .mat file

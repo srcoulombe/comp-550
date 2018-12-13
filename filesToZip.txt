@@ -1,0 +1,11 @@
+README.md
+
+
+
+
+splitData.py
+dirichletClassification.py
+dirichletModel.py
+matlabDirichletClassification.py
+computeInMatlab.py
+matlab/fastfit/learnParametersScript.m
