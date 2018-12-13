@@ -14,10 +14,10 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
  - barebones classification script: multinomialClassification.py numTrials TEST_CLUSTER
    * numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
    * TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
-   * output of running the script:
-	- time taken to run predictions are reported
-	- confusion matrix for classification
-	- precision result for classification
+ - output of running the script:
+   * time taken to run predictions are reported
+   * confusion matrix for classification
+   * precision result for classification
 
 ## 3. Running topic classification based on dirichlet compound multinomial language model
 ### Python method: 
