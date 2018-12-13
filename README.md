@@ -10,10 +10,13 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
           <dataDir>/twenty_newsgroups/cv0/twenty_newsgroups_*.pickle
 
 ## 2. Running topic classification based on multinomial language model 
-### Sci-kit Learn Multinomial NB: *.py
+### Sci-kit Learn Multinomial NB: 
+ - *.py
+ - this is the implementation reported in the report
  
 
-### Multinomial NB from scratch: 
+### Multinomial NB from scratch:
+ - this is NOT reported in the report; multinomialClassification.py shares most of code with dirichletClassification.py 
  - multinomialClassification.py numTrials TEST_CLUSTER
    * numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
    * TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
@@ -36,7 +39,10 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
    * precision result for classification
  
 ### Matlab-based method: 
-We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
+We were interested to offload heavy computation to [Minka's fastfit matlab implementation](https://github.com/tminka/fastfit), as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
+
+To run the Matlab-based method, all you need is a working version of Matlab (tested on Matlab R2016b, MacOS), and Python.
+The _**matlab/**_ directory is a combination of [Minka's fastfit](https://github.com/tminka/fastfit) and dependencies from [Minka's lightspeed](https://github.com/tminka/lightspeed).
 
  As it is now, 3 things have to be done manualy to offload heavy-computation (trainParameter) to matlab. 
  - transfer python pickle cross-validation splits to .mat file
