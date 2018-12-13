@@ -10,10 +10,10 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
           <dataDir>/twenty_newsgroups/cv0/twenty_newsgroups_*.pickle
 
 ## 2. Running topic classification based on multinomial language model 
-###Sci-kit Learn Multinomial NB: *.py
+### Sci-kit Learn Multinomial NB: *.py
  
 
-###Multinomial NB from scratch: 
+### Multinomial NB from scratch: 
  - multinomialClassification.py numTrials TEST_CLUSTER
    * numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
    * TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
