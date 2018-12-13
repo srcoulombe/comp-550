@@ -22,6 +22,9 @@ for splitIdx = 1:totalSplitNum
     
     alphaLearntM = zeros( numTopics, sz(2) );
     for topicIdx = 1:numTopics
+        if topicIdx == 17
+            continue;
+        end
         trainingDataM = trainingData.( topicDataMFns{ topicIdx } );
         alphaLearntM( topicIdx, : ) = polya_fit_simple( trainingDataM, alphaInit );
     end
