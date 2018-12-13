@@ -13,12 +13,22 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 ## 2. Running topic classification based on multinomial language model 
 ### Sci-kit Learn Multinomial NB: 
  - assumes ./notebooks/data-extraction-and-cleaning.ipynb has been run and/or that the ./data_pickles directory already contains the three "intermediate" pickled Python dictionaries
- - ./train_test_split_and_multinomial_twenty_newsgroups.py can be run as-is from the command line
- - this is the implementation reported in the report
+ - ./train_test_split_and_multinomial_twenty_newsgroups.py can be run as-is from the command line, contains a hard-coded parameter in the if __name__ == '__main__' section for the number of cross-validations to run (currently set to 10)
+ - generates the training/testing matrices and label lists pickle files for every cross-validation
+ - training/testing matrices and label lists pickle files should be moved into ./training_testing_and_results_pickles/twenty_newsgroups/cv#/, where # ranges from 0 - (number of cross-validations - 1)
+     * e.g.) ./training_testing_and_results_pickles/twenty_newsgroups/cv0 should contain:
+     1. twenty_newsgroups_testing_matrix_cv#0.pickle
+     2. twenty_newsgroups_testing_matrix_labels_vector_cv#0.pickle
+     3. twenty_newsgroups_training_matrix_cv#0.pickle
+     4. twenty_newsgroups_training_matrix_labels_vector_cv#0.pickle
+
+ - this is the implementation reported in the report 
+
  
 ### Multinomial NB from scratch:
  - this is NOT reported in the report; multinomialClassification.py shares most of code with dirichletClassification.py 
   - assumes ./notebooks/data-extraction-and-cleaning.ipynb has been run and/or that the ./data_pickles directory already contains the three "intermediate" pickled Python dictionaries
+  - assumes ./train_test_split_and_multinomial_twenty_newsgroups.py's 'setup' function has been run to create the training/testing matrices and label lists for each cross-validation and that the pickled matrices and label lists have been moved to /training_testing_and_results_pickles/twenty_newsgroups/cv#/, where # ranges from 0 - (number of cross-validations - 1)
  - multinomialClassification.py numTrials TEST_CLUSTER
    * numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
    * TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
