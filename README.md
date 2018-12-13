@@ -27,10 +27,10 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
    * numTrials: number of CV trials for classification
    * thresholdPower: is a number specifying training threshold for parameter approximation. Training Threshold will be e-(thresholdPower)
    * TEST_CLUSTER: same as in multinomialClassification.py. Either "twenty_newsgroups" or "industry_sector"
-   * output of running the script:
-	- various prints on training time, number of documents used per topic
-	- confusion matrix for classification
-	- precision result for classification
+ - output of running the script:
+   * various prints on training time, number of documents used per topic
+   * confusion matrix for classification
+   * precision result for classification
  
 ### Matlab-based method: 
 We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
