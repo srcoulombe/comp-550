@@ -32,7 +32,8 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 	1 confusion matrix for classification
 	1 precision result for classification
  
-### Matlab-based method: We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
+### Matlab-based method: 
+We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
 
  As it is now, 3 things have to be done manualy to offload heavy-computation (trainParameter) to matlab. 
     * transfer python pickle cross-validation splits to .mat file
