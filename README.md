@@ -1,14 +1,14 @@
-#Using Mini-Batches for Dirichlet Compound Multinomial Language Model
+# Using Mini-Batches for Dirichlet Compound Multinomial Language Model
 
 Steps to replicate results for the twenty_newsgroups dataset.*
 DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have not been thoroughly tested for industry_sector dataset.
 
-##1. Run jupyter-notebook for data pre-processing and 80-20 cross-validation splits
+## 1. Run jupyter-notebook for data pre-processing and 80-20 cross-validation splits
  - creates pickles of training data, training labels, testing data and testing labels
     e.g.) path to cross-validation 0 trial for twenty_newsgroups: 
           <dataDir>/twenty_newsgroups/cv0/twenty_newsgroups_*.pickle
 
-##2. Running topic classification based on multinomial language model 
+## 2. Running topic classification based on multinomial language model 
  - one using sklearn: *.py
  - barebones classification script: multinomialClassification.py <numTrials> <TEST_CLUSTER>
    o numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
@@ -18,8 +18,8 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 	* confusion matrix for classification
 	* precision result for classification
 
-##3. Running topic classification based on dirichlet compound multinomial language model
-###Python method: dirichletClassification.py <maxIter> <numDocsPerIter> <numTrials> <thresholdPower> <TEST_CLUSTER>
+## 3. Running topic classification based on dirichlet compound multinomial language model
+### Python method: dirichletClassification.py <maxIter> <numDocsPerIter> <numTrials> <thresholdPower> <TEST_CLUSTER>
    o maxIter is a positive integer
    o numDocsPerIter: specifies whether to use mini-batch (1~798) or GD (799) for twenty_newsgroups
    o numTrials: number of CV trials for classification
@@ -30,7 +30,7 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 	* confusion matrix for classification
 	* precision result for classification
  
-###Matlab-based method: We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
+### Matlab-based method: We were interested to offload heavy computation to Minka's fastfit matlab implementation, as the pure python implementation was taking a long time to train on personal laptops. We were unable to automate this offloading using matlab.engine from python (that enables using Matlab functions in python).
 
  As it is now, 3 things have to be done manualy to offload heavy-computation (trainParameter) to matlab. 
     - transfer python pickle cross-validation splits to .mat file
