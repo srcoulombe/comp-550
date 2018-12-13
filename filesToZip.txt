@@ -9,3 +9,5 @@ dirichletModel.py
 matlabDirichletClassification.py
 computeInMatlab.py
 matlab/fastfit/learnParametersScript.m
+training_testing_and_results_pickles/twenty_newsgroups/cv0/twenty_newsgroups_trained_param_cv#0.pickle
+
