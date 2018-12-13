@@ -6,12 +6,15 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 
 ## 1. Run jupyter-notebook for data pre-processing and 80-20 cross-validation splits
  - creates pickles of training data, training labels, testing data and testing labels
-    e.g.) path to cross-validation 0 trial for twenty_newsgroups: 
+    * e.g.) path to cross-validation 0 trial for twenty_newsgroups: 
           <dataDir>/twenty_newsgroups/cv0/twenty_newsgroups_*.pickle
 
 ## 2. Running topic classification based on multinomial language model 
- - one using sklearn: *.py
- - barebones classification script: multinomialClassification.py numTrials TEST_CLUSTER
+###Sci-kit Learn Multinomial NB: *.py
+ 
+
+###Multinomial NB from scratch: 
+ - multinomialClassification.py numTrials TEST_CLUSTER
    * numTrials is a number from 1-10, specifying number of cross-validation trials included for classification
    * TEST_CLUSTER is a string, either "twenty_newsgroups" or "industry_sector" (quotations aren't needed for use in command line)
  - output of running the script:
