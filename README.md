@@ -42,6 +42,8 @@ DISCLAIMER: All the results reported are for twenty_newsgroups; the scripts have
 DISCLAIMER: note that smoothing schemes between Python method and Matlab method are different.
 
 For the Python classifier, alpha parameters are smoothed after **every** update iteration of the FPI method; for the Matlab classifier, alpha parameters are smoothed **once** after the FPI method has finished.
+
+Note that these scripts all assumes ./train_test_split_and_multinomial_twenty_newsgroups.py's 'setup' function has been run to create the training/testing matrices and label lists for each cross-validation and that the pickled matrices and label lists have been moved to /training_testing_and_results_pickles/twenty_newsgroups/cv#/, where # ranges from 0 - (number of cross-validations - 1) 
  
 ### Python method: 
  - dirichletClassification.py maxIter numDocsPerIter numTrials thresholdPower TEST_CLUSTER
