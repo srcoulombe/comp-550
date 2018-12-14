@@ -1,12 +1,12 @@
 README.md
-
-
-
-
 splitData.py
 dirichletClassification.py
 dirichletModel.py
 matlabDirichletClassification.py
 computeInMatlab.py
 matlab/fastfit/learnParametersScript.m
-
+notebooks/data-extraction-and-cleaning.ipynb
+data_pickles/pickle_legend.txt
+data_pickles/twenty_newsgroups_dict_of_dicts_docID_token_freq_dicts.pickle
+bubble_plotter.py
+train_test_split_and_multinomial_twenty_newsgroups.py
